@@ -24,13 +24,21 @@ import pyautogui
 import sys
 import os
 import select
+import yaml
 
 
 class DictationApp:
     def __init__(self):
+        config = {}
+        try:
+            with open("dictate.yaml", "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+        except Exception:
+            pass
         self.status_window = None
         self.show_status_window("Starting", "blue")
         self.recognizer = sr.Recognizer()
+        vars(self.recognizer).update(config.get("Recognizer", {}))
         self.microphone = self.setup_microphone()
         if not self.microphone:
             print("ERROR: No working microphone found")
