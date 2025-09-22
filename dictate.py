@@ -24,6 +24,7 @@ import pyautogui
 import sys
 import os
 import select
+import traceback
 import yaml
 
 
@@ -70,27 +71,27 @@ class DictationApp:
 
         mic = None
         for device_idx in [None, 1, 0, 2]:
+            # Get the actual device name if available
+            if device_idx is None:
+                self.device_name = "default"
+            elif device_idx < len(microphone_names):
+                self.device_name = f"device {device_idx}: " f"{microphone_names[device_idx]}"
+            else:
+                self.device_name = f"device {device_idx}"
+
+            print(f"Testing microphone: {self.device_name}")
+            mic = sr.Microphone(device_index=device_idx)
+
             try:
-                mic = sr.Microphone(device_index=device_idx)
-
-                # Get the actual device name if available
-                if device_idx is None:
-                    device_name = "default"
-                elif device_idx < len(microphone_names):
-                    device_name = f"device {device_idx}: " f"{microphone_names[device_idx]}"
-                else:
-                    device_name = f"device {device_idx}"
-
-                try:
-                    mic.stream = None
-                    with mic:
-                        pass
-                    print(f"Using microphone: {device_name}")
-                    return mic
-                except Exception:
-                    mic = None
-                    continue
-            except Exception:
+                mic.stream = None
+                with mic:
+                    pass
+                print(f"Using microphone: {self.device_name}")
+                return mic
+            except Exception as e:
+                print(f"microphone {self.device_name} faied {e}")
+                traceback.print_exc()
+                mic = None
                 continue
 
         return None
@@ -170,10 +171,9 @@ class DictationApp:
         if not self.microphone:
             print("Cannot record: No microphone available")
             return
-
         try:
             self.stop_listening = self.recognizer.listen_in_background(self.microphone, recorded_cb)
-            print("🔴 Recording... Speak now!")
+            print(f"🔴 Recording with {self.device_name}")
         except Exception as e:
             print(f"Failed to start background listening: {e}")
 
