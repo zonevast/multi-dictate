@@ -136,14 +136,12 @@ class DictationApp:
         """Start audio recording and speech recognition"""
 
         def recorded_cb(recognizer, audio):
-            print("🎵 Audio detected! Processing...")
-
             self.show_status_window("⏳ Processing...", "orange")
+            print("⏳ Processing...")
 
             try:
-                print("⏳ Converting speech to text...")
                 text = recognizer.recognize_google(audio)
-
+                print(f"> {text}")
                 self.show_status_window(text, "green")
 
                 def hide_later():
@@ -153,8 +151,8 @@ class DictationApp:
                 threading.Thread(target=hide_later, daemon=True).start()
                 pyautogui.typewrite(text + " ")
             except sr.UnknownValueError:
-                print("❌ Could not understand audio")
-                self._show_error("❌ No speech detected")
+                print("No speech detected")
+                self._show_error("No speech detected")
             except sr.RequestError as e:
                 print(f"❌ Speech service error: {e}")
                 self._show_error("❌ Service error")
