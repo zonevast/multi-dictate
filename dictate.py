@@ -160,8 +160,7 @@ class DictationApp:
                 print(f"❌ Recognition error: {e}")
                 self._show_error("❌ Recognition error")
 
-
-            if self.command == 'stop':
+            if self.command == "stop":
                 self.stop_listening(wait_for_stop=False)
                 self.hide_status_window()
 
@@ -169,6 +168,10 @@ class DictationApp:
         if not self.microphone:
             print("Cannot record: No microphone available")
             return
+        if self.microphone.stream:
+            # already recording
+            return
+        self.show_status_window("🎤 Recording...", "red")
         try:
             self.stop_listening = self.recognizer.listen_in_background(self.microphone, recorded_cb)
             print(f"🔴 Recording with {self.device_name}")
@@ -185,6 +188,18 @@ class DictationApp:
             self.hide_status_window()
 
         threading.Thread(target=hide_later, daemon=True).start()
+
+    def input_command(self, fifo):
+        ready, a, b = select.select([fifo], [], [], 0.1)
+        if ready:
+            line = fifo.readline().strip()
+            if line:
+                self.command = line
+                print(f" >>> {line}")
+            elif line:
+                print(f"Unknown command: {line}")
+            if self.command == "rec":
+                self.start_recording()
 
     def run(self):
         """Start the FIFO listener"""
@@ -213,20 +228,7 @@ class DictationApp:
                             gui_update = self.gui_queue.pop(0)
                             gui_update()
 
-                        # Check if FIFO has data with timeout
-                        ready, a, b = select.select([fifo], [], [], 0.1)
-                        if ready:
-                            line = fifo.readline().strip()
-                            if line:
-                                self.command = line
-                                print(f" >>> {line}")
-                            elif line:
-                                print(f"Unknown command: {line}")
-                            if self.command == 'rec':
-                                self.show_status_window("🎤 Recording...", "red")
-                                if not self.microphone.stream:
-                                    self.command = None
-                                    self.start_recording()
+                        self.input_command(fifo)
 
                     except KeyboardInterrupt:
                         break
