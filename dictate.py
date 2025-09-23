@@ -201,7 +201,6 @@ class DictationApp:
             print(f"Could not create FIFO pipe: {e}")
             return
 
-        print("Global hotkey mode enabled!")
         print(f"Commands: echo 'rec' > {fifo_path} or " f"echo 'stop' > {fifo_path}")
         print("Press Ctrl+C to exit")
 
