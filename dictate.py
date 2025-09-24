@@ -18,15 +18,19 @@ main
 
 import os
 import select
+import subprocess
 import sys
 import threading
 import time
 import tkinter as tk
 import traceback
+from io import BytesIO
 
 import pasimple
 import pyautogui
 import yaml
+from gtts import gTTS
+import pygame
 
 import speech_recognition as sr
 
@@ -59,6 +63,7 @@ class DictationApp:
         self.recording_active = False
         self.stop_recording_flag = False
         self.recorded_audio_chunks = []
+        self.speech_echo_enabled = False
 
         # Command mapping
         self.commands = {
@@ -66,6 +71,7 @@ class DictationApp:
             "stop": (self.stop_manual_recording, "Stop manual recording"),
             "toggle": (self._toggle_recording, "Toggle manual recording"),
             "record till pause": (self.start_continuous_recording, "Start continuous recording till audio pause"),
+            "echo": (self._toggle_speech_echo, "Toggle speech echo on/off"),
         }
 
         # Configure speech recognition if microphone is available
@@ -143,6 +149,60 @@ class DictationApp:
     def _log_stream_info(self):
         """Log pasimple stream information"""
         print(f"Audio stream: {self.pasimple_stream.channels()}ch {self.pasimple_stream.rate()}Hz")
+
+    def speak_text(self, text):
+        """Convert text to speech using gTTS with fallbacks"""
+        if not self.speech_echo_enabled:
+            return
+
+        def speak_in_thread():
+            try:
+                tts = gTTS(text)
+                audio_buffer = BytesIO()
+                tts.write_to_fp(audio_buffer)
+                audio_buffer.seek(0)
+
+                # Try different audio drivers for compatibility
+                audio_drivers = [
+                    {},  # Default settings
+                    {'frequency': 22050, 'size': -16, 'channels': 2, 'buffer': 512},
+                    {'frequency': 44100, 'size': -16, 'channels': 1, 'buffer': 1024},
+                ]
+
+                mixer_initialized = False
+                for audio_config in audio_drivers:
+                    try:
+                        pygame.mixer.init(**audio_config)
+                        mixer_initialized = True
+                        break
+                    except pygame.error:
+                        continue
+
+                if not mixer_initialized:
+                    raise pygame.error("Could not initialize audio")
+
+                pygame.mixer.music.load(audio_buffer)
+                pygame.mixer.music.set_volume(0.1)
+                pygame.mixer.music.play()
+
+                # Wait for playback to finish
+                while pygame.mixer.music.get_busy():
+                    pygame.time.wait(100)
+
+                if pygame.mixer.get_init():
+                    pygame.mixer.quit()
+
+            except Exception as e:
+                # Fallback to system TTS
+                try:
+                    subprocess.run(['espeak', text], check=True, capture_output=True)
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    try:
+                        subprocess.run(['spd-say', text], check=True, capture_output=True)
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        print(f"TTS failed: {e}")
+
+        threading.Thread(target=speak_in_thread, daemon=True).start()
 
     def record_audio(self, max_duration=60):
         """Record audio manually until stop command or timeout"""
@@ -287,6 +347,7 @@ class DictationApp:
 
             threading.Thread(target=hide_later, daemon=True).start()
             pyautogui.typewrite(text + " ")
+            self.speak_text(text)
         except sr.UnknownValueError:
             self.command = "stop"
             print("No speech detected")
@@ -334,6 +395,7 @@ class DictationApp:
 
             threading.Thread(target=hide_later, daemon=True).start()
             pyautogui.typewrite(text + " ")
+            self.speak_text(text)
         except sr.UnknownValueError:
             print("No speech detected")
             self._show_error("No speech detected")
@@ -389,6 +451,13 @@ class DictationApp:
         else:
             print("Starting recording")
             self.start_manual_recording()
+
+    def _toggle_speech_echo(self):
+        """Toggle speech echo on/off"""
+        self.speech_echo_enabled = not self.speech_echo_enabled
+        status = "enabled" if self.speech_echo_enabled else "disabled"
+        print(f"Speech echo {status}")
+        self.show_status_window(f"Echo {status}", "lightblue")
 
     def input_command(self, fifo):
         line = fifo.readline().strip()
