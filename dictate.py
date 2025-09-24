@@ -193,25 +193,29 @@ class DictationApp:
 
         def update_gui():
             if self.status_window:
-                self.status_window.destroy()
+                # Update existing window instead of destroying
+                self.status_window.configure(bg=color)
+                for widget in self.status_window.winfo_children():
+                    widget.destroy()
+            else:
+                self.status_window = tk.Tk()
+                self.status_window.title("Dictation")
+                self.status_window.attributes("-topmost", True)
+                self.status_window.overrideredirect(True)
 
-            self.status_window = tk.Tk()
-            self.status_window.title("Dictation")
-            self.status_window.configure(bg=color)
-            self.status_window.attributes("-topmost", True)
-            self.status_window.overrideredirect(True)
+                # Center on primary monitor
+                try:
+                    from screeninfo import get_monitors
 
-            # Center on primary monitor
-            try:
-                from screeninfo import get_monitors
+                    primary_monitor = next(m for m in get_monitors() if m.is_primary)
+                    x = primary_monitor.x + (primary_monitor.width - width) // 2
+                    y = primary_monitor.y + (primary_monitor.height - height) // 2
+                    self.status_window.geometry(f"{width}x{height}+{x}+{y}")
+                except Exception:
+                    # Fallback to fixed position if screeninfo not available
+                    self.status_window.geometry(f"{width}x{height}+300+10")
 
-                primary_monitor = next(m for m in get_monitors() if m.is_primary)
-                x = primary_monitor.x + (primary_monitor.width - width) // 2
-                y = primary_monitor.y + (primary_monitor.height - height) // 2
-                self.status_window.geometry(f"{width}x{height}+{x}+{y}")
-            except Exception:
-                # Fallback to fixed position if screeninfo not available
-                self.status_window.geometry(f"{width}x{height}+300+10")
+                self.status_window.configure(bg=color)
 
             label = tk.Label(
                 self.status_window,
