@@ -64,6 +64,7 @@ class DictationApp:
         self.stop_recording_flag = False
         self.recorded_audio_chunks = []
         self.speech_echo_enabled = False
+        self.continuous_mode_active = False
 
         # Command mapping
         self.commands = {
@@ -361,7 +362,11 @@ class DictationApp:
 
         if self.command == "stop":
             self.stop_listening(wait_for_stop=False)
+            self.continuous_mode_active = False
             self.hide_status_window()
+        elif self.continuous_mode_active:
+            # Keep showing listening status in continuous mode
+            self.show_status_window("🎤 Listening...", "lightcoral")
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -425,12 +430,14 @@ class DictationApp:
         if self.microphone.stream:
             # already recording
             return
-        self.show_status_window("🎤 Recording...", "lightcoral")
+        self.continuous_mode_active = True
+        self.show_status_window("🎤 Listening...", "lightcoral")
         try:
             self.stop_listening = self.recognizer.listen_in_background(self.microphone, recorded_cb)
             print(f"🔴 Recording with {self.device_name}")
         except Exception as e:
             print(f"Failed to start background listening: {e}")
+            self.continuous_mode_active = False
 
     def _show_error(self, message):
         """Show error window"""
