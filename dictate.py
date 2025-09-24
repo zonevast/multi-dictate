@@ -46,7 +46,7 @@ class DictationApp:
         except Exception:
             pass
         self.status_window = None
-        self.show_status_window("Starting", "blue")
+        self.show_status_window("Starting", "lightblue")
         self.recognizer = sr.Recognizer()
         vars(self.recognizer).update(config.get("Recognizer", {}))
         self.microphone = self.setup_microphone()
@@ -170,7 +170,7 @@ class DictationApp:
 
             if chunk_num % 10 == 0:
                 elapsed = chunk_num * 0.1
-                self.show_status_window(f"🎤 Recording... {elapsed:.0f}s", "red")
+                self.show_status_window(f"🎤 Recording... {elapsed:.0f}s", "lightcoral")
 
             chunk = self.pasimple_stream.read(chunk_size)
             self.recorded_audio_chunks.append(chunk)
@@ -188,7 +188,7 @@ class DictationApp:
 
         self.stop_recording_flag = True
 
-    def show_status_window(self, message, color="red", width=300, height=20):
+    def show_status_window(self, message, color="lightcoral", width=300, height=20):
         """Show a small status window centered on primary monitor"""
 
         def update_gui():
@@ -217,7 +217,7 @@ class DictationApp:
                 self.status_window,
                 text=message,
                 bg=color,
-                fg="white",
+                fg="black",
                 font=("Arial", 12),
             )
             label.pack(expand=True)
@@ -248,7 +248,7 @@ class DictationApp:
             return
 
         self.recording_active = True
-        self.show_status_window("🎤 Recording...", "red")
+        self.show_status_window("🎤 Recording...", "lightcoral")
 
         def record_and_process():
             try:
@@ -257,7 +257,7 @@ class DictationApp:
                     self._show_error("Recording failed")
                     return
 
-                self.show_status_window("⏳ Processing...", "orange")
+                self.show_status_window("⏳ Processing...", "lightsalmon")
 
                 audio = self._convert_raw_audio_to_sr_format(data)
                 if not audio:
@@ -275,7 +275,7 @@ class DictationApp:
         try:
             text = recognizer.recognize_google(audio)
             print(f"> {text}")
-            self.show_status_window(text, "green")
+            self.show_status_window(text, "lightgreen")
 
             def hide_later():
                 time.sleep(3)
@@ -322,7 +322,7 @@ class DictationApp:
         try:
             text = self.recognizer.recognize_google(audio)
             print(f"> {text}")
-            self.show_status_window(text, "green")
+            self.show_status_window(text, "lightgreen")
 
             def hide_later():
                 time.sleep(3)
@@ -344,7 +344,7 @@ class DictationApp:
         """Start continuous audio recording - records until silence/pause detected"""
 
         def recorded_cb(recognizer, audio):
-            self.show_status_window("⏳ Processing...", "orange")
+            self.show_status_window("⏳ Processing...", "lightsalmon")
             threading.Thread(
                 target=self._process_recorded_audio,
                 args=(recognizer, audio),
@@ -359,7 +359,7 @@ class DictationApp:
         if self.microphone.stream:
             # already recording
             return
-        self.show_status_window("🎤 Recording...", "red")
+        self.show_status_window("🎤 Recording...", "lightcoral")
         try:
             self.stop_listening = self.recognizer.listen_in_background(self.microphone, recorded_cb)
             print(f"🔴 Recording with {self.device_name}")
@@ -368,7 +368,7 @@ class DictationApp:
 
     def _show_error(self, message):
         """Show error window"""
-        self.show_status_window(message, "red")
+        self.show_status_window(message, "lightcoral")
 
         # Auto-hide after 2 seconds
         def hide_later():
