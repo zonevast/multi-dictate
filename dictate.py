@@ -16,16 +16,26 @@ main
 
 """
 
+import os
+import select
+import signal
+import sys
 import threading
 import time
 import tkinter as tk
-import speech_recognition as sr
-import pyautogui
-import sys
-import os
-import select
 import traceback
+
+import pasimple
+import pyautogui
 import yaml
+
+import speech_recognition as sr
+
+FORMAT = pasimple.PA_SAMPLE_S32LE
+SAMPLE_WIDTH = pasimple.format2width(FORMAT)
+CHANNELS = 1
+SAMPLE_RATE = 44100
+BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 
 class DictationApp:
@@ -46,6 +56,10 @@ class DictationApp:
 
         self.gui_queue = []
         self.command = None
+        self.pasimple_stream = None
+        self.recording_active = False
+        self.stop_recording_flag = False
+        self.recorded_audio_chunks = []
 
         # Configure speech recognition if microphone is available
         if self.microphone:
@@ -75,7 +89,7 @@ class DictationApp:
             if device_idx is None:
                 self.device_name = "default"
             elif device_idx < len(microphone_names):
-                self.device_name = f"device {device_idx}: " f"{microphone_names[device_idx]}"
+                self.device_name = f"device {device_idx}: {microphone_names[device_idx]}"
             else:
                 self.device_name = f"device {device_idx}"
 
@@ -85,6 +99,14 @@ class DictationApp:
             try:
                 mic.stream = None
                 with mic:
+                    """
+                    get_default_input_device_info
+                        get_default_input_device PyAudio_GetDefaultInputDevice
+                            Pa_GetDefaultInputDevice
+                                defaultInputDevice
+                        Pa_GetDefaultHostApi
+                            defaultHostApiIndex_
+                    """
                     pass
                 print(f"Using microphone: {self.device_name}")
                 return mic
@@ -95,6 +117,69 @@ class DictationApp:
                 continue
 
         return None
+
+    def setup_pasimple_recording(self):
+        """Setup pasimple audio recording stream"""
+        self.pasimple_stream = pasimple.PaSimple(
+            pasimple.PA_STREAM_RECORD,
+            FORMAT,
+            CHANNELS,
+            SAMPLE_RATE,
+            app_name="dictate-app",
+            stream_name="record-mono",
+            maxlength=BYTES_PER_SEC * 2,
+            fragsize=BYTES_PER_SEC // 5,
+        )
+        self._log_stream_info()
+        return True
+
+    def _log_stream_info(self):
+        """Log pasimple stream information"""
+        print(f"Audio stream: {self.pasimple_stream.channels()}ch {self.pasimple_stream.rate()}Hz")
+
+    def record_audio(self, max_duration=60):
+        """Record audio manually until stop command or timeout"""
+        if not self.pasimple_stream:
+            try:
+                self.setup_pasimple_recording()
+            except Exception as e:
+                print(f"Failed to setup recording: {e}")
+                return None
+
+        self.recorded_audio_chunks = []
+        self.stop_recording_flag = False
+
+        try:
+            return self._record_chunks(BYTES_PER_SEC // 10, max_duration * 10, max_duration)
+        except Exception as e:
+            print(f"Recording failed: {e}")
+            return None
+
+    def _record_chunks(self, chunk_size, total_chunks, max_duration):
+        """Record audio chunks in a loop"""
+        for chunk_num in range(total_chunks):
+            if self.stop_recording_flag:
+                break
+
+            if chunk_num % 10 == 0:
+                elapsed = chunk_num * 0.1
+                self.show_status_window(f"🎤 Recording... {elapsed:.0f}s", "red")
+
+            chunk = self.pasimple_stream.read(chunk_size)
+            self.recorded_audio_chunks.append(chunk)
+
+        return b"".join(self.recorded_audio_chunks)
+
+    def _combine_audio_chunks(self):
+        """Combine recorded audio chunks into single audio data"""
+        if not self.recorded_audio_chunks:
+            return None
+
+    def stop_manual_recording(self):
+        if not self.recording_active:
+            return
+
+        self.stop_recording_flag = True
 
     def show_status_window(self, message, color="red", width=200, height=30):
         """Show a small status window"""
@@ -110,7 +195,13 @@ class DictationApp:
             self.status_window.attributes("-topmost", True)
             self.status_window.overrideredirect(True)
 
-            label = tk.Label(self.status_window, text=message, bg=color, fg="white", font=("Arial", 12))
+            label = tk.Label(
+                self.status_window,
+                text=message,
+                bg=color,
+                fg="white",
+                font=("Arial", 12),
+            )
             label.pack(expand=True)
             self.status_window.update()
 
@@ -132,37 +223,116 @@ class DictationApp:
         else:
             self.gui_queue.append(lambda: hide_gui())
 
-    def start_recording(self):
-        """Start audio recording and speech recognition"""
+    def start_manual_recording(self):
+        """Start manual audio recording - records until stop command"""
+        if self.recording_active:
+            print("Recording already active")
+            return
+
+        self.recording_active = True
+        self.show_status_window("🎤 Recording...", "red")
+
+        def record_and_process():
+            try:
+                data = self.record_audio(60)
+                if not data:
+                    self._show_error("Recording failed")
+                    return
+
+                self.show_status_window("⏳ Processing...", "orange")
+
+                audio = self._convert_raw_audio_to_sr_format(data)
+                if not audio:
+                    self._show_error("Audio conversion failed")
+                    return
+
+                self._process_speech_recognition(audio)
+            finally:
+                self.recording_active = False
+
+        threading.Thread(target=record_and_process, daemon=True).start()
+
+    def _process_recorded_audio(self, recognizer, audio):
+        """Process recorded audio in separate thread"""
+        try:
+            text = recognizer.recognize_google(audio)
+            print(f"> {text}")
+            self.show_status_window(text, "green")
+
+            def hide_later():
+                time.sleep(3)
+                self.hide_status_window()
+
+            threading.Thread(target=hide_later, daemon=True).start()
+            pyautogui.typewrite(text + " ")
+        except sr.UnknownValueError:
+            self.command = "stop"
+            print("No speech detected")
+            self._show_error("No speech detected")
+        except sr.RequestError as e:
+            print(f"❌ Speech service error: {e}")
+            self._show_error("❌ Service error")
+        except Exception as e:
+            print(f"❌ Recognition error: {e}")
+            self._show_error("❌ Recognition error")
+
+        if self.command == "stop":
+            self.stop_listening(wait_for_stop=False)
+            self.hide_status_window()
+
+    def _convert_raw_audio_to_sr_format(self, data):
+        """Convert raw audio data to speech_recognition AudioData format"""
+        try:
+            import io
+            import wave
+
+            buf = io.BytesIO()
+            with wave.open(buf, "wb") as f:
+                f.setnchannels(CHANNELS)
+                f.setsampwidth(SAMPLE_WIDTH)
+                f.setframerate(SAMPLE_RATE)
+                f.writeframes(data)
+
+            buf.seek(0)
+            return sr.AudioData(buf.getvalue(), SAMPLE_RATE, SAMPLE_WIDTH)
+        except Exception as e:
+            print(f"Audio conversion error: {e}")
+            return None
+
+    def _process_speech_recognition(self, audio):
+        """Process audio through speech recognition and handle results"""
+        try:
+            text = self.recognizer.recognize_google(audio)
+            print(f"> {text}")
+            self.show_status_window(text, "green")
+
+            def hide_later():
+                time.sleep(3)
+                self.hide_status_window()
+
+            threading.Thread(target=hide_later, daemon=True).start()
+            pyautogui.typewrite(text + " ")
+        except sr.UnknownValueError:
+            print("No speech detected")
+            self._show_error("No speech detected")
+        except sr.RequestError as e:
+            print(f"❌ Speech service error: {e}")
+            self._show_error("❌ Service error")
+        except Exception as e:
+            print(f"❌ Recognition error: {e}")
+            self._show_error("❌ Recognition error")
+
+    def start_continuous_recording(self):
+        """Start continuous audio recording - records until silence/pause detected"""
 
         def recorded_cb(recognizer, audio):
             self.show_status_window("⏳ Processing...", "orange")
-            print("⏳ Processing...")
-
-            try:
-                text = recognizer.recognize_google(audio)
-                print(f"> {text}")
-                self.show_status_window(text, "green")
-
-                def hide_later():
-                    time.sleep(3)
-                    self.hide_status_window()
-
-                threading.Thread(target=hide_later, daemon=True).start()
-                pyautogui.typewrite(text + " ")
-            except sr.UnknownValueError:
-                print("No speech detected")
-                self._show_error("No speech detected")
-            except sr.RequestError as e:
-                print(f"❌ Speech service error: {e}")
-                self._show_error("❌ Service error")
-            except Exception as e:
-                print(f"❌ Recognition error: {e}")
-                self._show_error("❌ Recognition error")
-
-            if self.command == "stop":
-                self.stop_listening(wait_for_stop=False)
-                self.hide_status_window()
+            threading.Thread(
+                target=self._process_recorded_audio,
+                args=(recognizer, audio),
+                daemon=True,
+            ).start()
+            # Return immediately to caller
 
         # start_recording
         if not self.microphone:
@@ -190,16 +360,26 @@ class DictationApp:
         threading.Thread(target=hide_later, daemon=True).start()
 
     def input_command(self, fifo):
-        ready, a, b = select.select([fifo], [], [], 0.1)
-        if ready:
-            line = fifo.readline().strip()
-            if line:
-                self.command = line
-                print(f" >>> {line}")
-            elif line:
+        line = fifo.readline().strip()
+        if line:
+            self.command = line
+            print(f" >>> {line}")
+
+            if self.command == "record":
+                self.start_manual_recording()
+            elif self.command == "stop":
+                self.stop_manual_recording()
+            elif self.command == "record till pause":
+                self.start_continuous_recording()
+            elif self.command == "toggle":
+                if self.recording_active:
+                    print("Stopping recording")
+                    self.stop_manual_recording()
+                else:
+                    print("Starting recording")
+                    self.start_manual_recording()
+            else:
                 print(f"Unknown command: {line}")
-            if self.command == "rec":
-                self.start_recording()
 
     def run(self):
         """Start the FIFO listener"""
@@ -216,11 +396,15 @@ class DictationApp:
             print(f"Could not create FIFO pipe: {e}")
             return
 
-        print(f"Commands: echo 'rec' > {fifo_path} or " f"echo 'stop' > {fifo_path}")
+        print(f"Commands:")
+        print(f"  echo 'record' > {fifo_path}    # Start manual recording till stop")
+        print(f"  echo 'stop' > {fifo_path}      # Stop manual recording")
+        print(f"  echo 'toggle' > {fifo_path}     # Toggle manual recording")
+        print(f"  echo 'record till pause' > {fifo_path} # Start continuous recording till audio pause")
         print("Press Ctrl+C to exit")
 
         try:
-            with open("/tmp/dictate_trigger", "r") as fifo:
+            with open(fifo_path, "r") as fifo:
                 while True:
                     try:
                         # Process GUI queue
@@ -228,20 +412,21 @@ class DictationApp:
                             gui_update = self.gui_queue.pop(0)
                             gui_update()
 
-                        self.input_command(fifo)
+                        # Use select with longer timeout for efficiency
+                        ready, _, _ = select.select([fifo], [], [], 1.0)
+                        if ready:
+                            self.input_command(fifo)
 
                     except KeyboardInterrupt:
                         break
                     except Exception as e:
                         print(f"FIFO read error: {e}")
-                    finally:
-                        time.sleep(0.1)
 
         except KeyboardInterrupt:
             print("\nExiting...")
         finally:
-            if os.path.exists("/tmp/dictate_trigger"):
-                os.remove("/tmp/dictate_trigger")
+            if os.path.exists(fifo_path):
+                os.remove(fifo_path)
             self.hide_status_window()
 
 
