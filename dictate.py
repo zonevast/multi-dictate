@@ -189,8 +189,8 @@ class DictationApp:
 
         self.stop_recording_flag = True
 
-    def show_status_window(self, message, color="red", width=200, height=30):
-        """Show a small status window"""
+    def show_status_window(self, message, color="red", width=300, height=20):
+        """Show a small status window centered on primary monitor"""
 
         def update_gui():
             if self.status_window:
@@ -198,10 +198,21 @@ class DictationApp:
 
             self.status_window = tk.Tk()
             self.status_window.title("Dictation")
-            self.status_window.geometry(f"{width}x{height}+300+10")
             self.status_window.configure(bg=color)
             self.status_window.attributes("-topmost", True)
             self.status_window.overrideredirect(True)
+
+            # Center on primary monitor
+            try:
+                from screeninfo import get_monitors
+
+                primary_monitor = next(m for m in get_monitors() if m.is_primary)
+                x = primary_monitor.x + (primary_monitor.width - width) // 2
+                y = primary_monitor.y + (primary_monitor.height - height) // 2
+                self.status_window.geometry(f"{width}x{height}+{x}+{y}")
+            except Exception:
+                # Fallback to fixed position if screeninfo not available
+                self.status_window.geometry(f"{width}x{height}+300+10")
 
             label = tk.Label(
                 self.status_window,
