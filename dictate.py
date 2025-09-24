@@ -18,7 +18,6 @@ main
 
 import os
 import select
-import signal
 import sys
 import threading
 import time
@@ -413,7 +412,7 @@ class DictationApp:
             print(f"Could not create FIFO pipe: {e}")
             return
 
-        print(f"Commands:")
+        print("Commands:")
         for cmd, (_, description) in self.commands.items():
             print(f"  echo '{cmd}' > {fifo_path} # {description}")
         print("Press Ctrl+C to exit")
