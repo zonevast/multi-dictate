@@ -61,6 +61,14 @@ class DictationApp:
         self.stop_recording_flag = False
         self.recorded_audio_chunks = []
 
+        # Command mapping
+        self.commands = {
+            "record": (self.start_manual_recording, "Start manual recording till stop"),
+            "stop": (self.stop_manual_recording, "Stop manual recording"),
+            "toggle": (self._toggle_recording, "Toggle manual recording"),
+            "record till pause": (self.start_continuous_recording, "Start continuous recording till audio pause"),
+        }
+
         # Configure speech recognition if microphone is available
         if self.microphone:
             try:
@@ -359,25 +367,23 @@ class DictationApp:
 
         threading.Thread(target=hide_later, daemon=True).start()
 
+    def _toggle_recording(self):
+        """Toggle manual recording on/off"""
+        if self.recording_active:
+            print("Stopping recording")
+            self.stop_manual_recording()
+        else:
+            print("Starting recording")
+            self.start_manual_recording()
+
     def input_command(self, fifo):
         line = fifo.readline().strip()
         if line:
             self.command = line
             print(f" >>> {line}")
 
-            if self.command == "record":
-                self.start_manual_recording()
-            elif self.command == "stop":
-                self.stop_manual_recording()
-            elif self.command == "record till pause":
-                self.start_continuous_recording()
-            elif self.command == "toggle":
-                if self.recording_active:
-                    print("Stopping recording")
-                    self.stop_manual_recording()
-                else:
-                    print("Starting recording")
-                    self.start_manual_recording()
+            if self.command in self.commands:
+                self.commands[self.command][0]()
             else:
                 print(f"Unknown command: {line}")
 
@@ -397,10 +403,8 @@ class DictationApp:
             return
 
         print(f"Commands:")
-        print(f"  echo 'record' > {fifo_path}    # Start manual recording till stop")
-        print(f"  echo 'stop' > {fifo_path}      # Stop manual recording")
-        print(f"  echo 'toggle' > {fifo_path}     # Toggle manual recording")
-        print(f"  echo 'record till pause' > {fifo_path} # Start continuous recording till audio pause")
+        for cmd, (_, description) in self.commands.items():
+            print(f"  echo '{cmd}' > {fifo_path} # {description}")
         print("Press Ctrl+C to exit")
 
         try:
