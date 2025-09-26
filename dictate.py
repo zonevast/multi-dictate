@@ -71,7 +71,10 @@ class DictationApp:
             "record": (self.start_manual_recording, "Start manual recording till stop"),
             "stop": (self.stop_manual_recording, "Stop manual recording"),
             "toggle": (self._toggle_recording, "Toggle manual recording"),
-            "record till pause": (self.start_continuous_recording, "Start continuous recording till audio pause"),
+            "record till pause": (
+                self.start_continuous_recording,
+                "Start continuous recording till audio pause",
+            ),
             "echo": (self._toggle_speech_echo, "Toggle speech echo on/off"),
         }
 
@@ -166,8 +169,8 @@ class DictationApp:
                 # Try different audio drivers for compatibility
                 audio_drivers = [
                     {},  # Default settings
-                    {'frequency': 22050, 'size': -16, 'channels': 2, 'buffer': 512},
-                    {'frequency': 44100, 'size': -16, 'channels': 1, 'buffer': 1024},
+                    {"frequency": 22050, "size": -16, "channels": 2, "buffer": 512},
+                    {"frequency": 44100, "size": -16, "channels": 1, "buffer": 1024},
                 ]
 
                 mixer_initialized = False
@@ -196,10 +199,10 @@ class DictationApp:
             except Exception as e:
                 # Fallback to system TTS
                 try:
-                    subprocess.run(['espeak', text], check=True, capture_output=True)
+                    subprocess.run(["espeak", text], check=True, capture_output=True)
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     try:
-                        subprocess.run(['spd-say', text], check=True, capture_output=True)
+                        subprocess.run(["spd-say", text], check=True, capture_output=True)
                     except (subprocess.CalledProcessError, FileNotFoundError):
                         print(f"TTS failed: {e}")
 

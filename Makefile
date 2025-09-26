@@ -2,8 +2,8 @@
 
 lint:
 	sed -i 's/[[:space:]]*$$//' dictate.py
-	-flake8 dictate.py --max-line-length=120 --ignore=E203,W503,W504
-	black dictate.py --line-length=120
+	-flake8 dictate.py --max-line-length=100 --ignore=E203,W503,W504
+	black dictate.py --line-length=100
 
 clean:
 	rm -f /tmp/dictate_trigger
