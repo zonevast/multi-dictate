@@ -30,7 +30,6 @@ import pasimple
 import pyautogui
 import yaml
 from gtts import gTTS
-import pygame
 
 import speech_recognition as sr
 
@@ -161,6 +160,7 @@ class DictationApp:
 
         def speak_in_thread():
             try:
+                import pygame
                 tts = gTTS(text)
                 audio_buffer = BytesIO()
                 tts.write_to_fp(audio_buffer)
