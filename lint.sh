@@ -5,10 +5,10 @@ t=dictate.py
 isort --check-only --quiet $t || isort $t
 
 # Format code
-black --line-length 120 $t
+black --line-length 100 $t
 
 # Check code style
-flake8 --max-line-length=120 $t
+flake8 --max-line-length=100 $t
 
 # Run static analysis on main package
 pylint $t

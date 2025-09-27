@@ -28,10 +28,9 @@ from io import BytesIO
 
 import pasimple
 import pyautogui
+import speech_recognition as sr
 import yaml
 from gtts import gTTS
-
-import speech_recognition as sr
 
 FORMAT = pasimple.PA_SAMPLE_S32LE
 SAMPLE_WIDTH = pasimple.format2width(FORMAT)
@@ -161,6 +160,7 @@ class DictationApp:
         def speak_in_thread():
             try:
                 import pygame
+
                 tts = gTTS(text, **self.config.get("gTTS", {}))
                 audio_buffer = BytesIO()
                 tts.write_to_fp(audio_buffer)
