@@ -29,6 +29,7 @@ import threading
 import time
 import tkinter as tk
 import traceback
+import warnings
 from io import BytesIO
 
 import pasimple
@@ -36,6 +37,9 @@ import pyautogui
 import speech_recognition as sr
 import yaml
 from gtts import gTTS
+from vosk import SetLogLevel
+
+SetLogLevel(-1)
 
 FORMAT = pasimple.PA_SAMPLE_S32LE
 SAMPLE_WIDTH = pasimple.format2width(FORMAT)
@@ -172,12 +176,7 @@ class DictationApp:
             maxlength=BYTES_PER_SEC * 2,
             fragsize=BYTES_PER_SEC // 5,
         )
-        self._log_stream_info()
         return True
-
-    def _log_stream_info(self):
-        """Log pasimple stream information"""
-        print(f"Audio stream: {self.pasimple_stream.channels()}ch {self.pasimple_stream.rate()}Hz")
 
     def speak_text(self, text):
         """Convert text to speech using gTTS with fallbacks"""
