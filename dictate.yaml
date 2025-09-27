@@ -1,2 +1,6 @@
 Recognizer:
   pause_threshold: 1
+recognize_google:
+  language: en
+gTTS:
+  lang: en

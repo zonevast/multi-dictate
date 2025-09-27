@@ -42,16 +42,16 @@ BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 class DictationApp:
     def __init__(self):
-        config = {}
+        self.config = {}
         try:
             with open("dictate.yaml", "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
+                self.config = yaml.safe_load(f) or {}
         except Exception:
             pass
         self.status_window = None
         self.show_status_window("Starting", "lightblue")
         self.recognizer = sr.Recognizer()
-        vars(self.recognizer).update(config.get("Recognizer", {}))
+        vars(self.recognizer).update(self.config.get("Recognizer", {}))
         self.microphone = self.setup_microphone()
         if not self.microphone:
             print("ERROR: No working microphone found")
@@ -161,7 +161,7 @@ class DictationApp:
         def speak_in_thread():
             try:
                 import pygame
-                tts = gTTS(text)
+                tts = gTTS(text, **self.config.get("gTTS", {}))
                 audio_buffer = BytesIO()
                 tts.write_to_fp(audio_buffer)
                 audio_buffer.seek(0)
@@ -341,7 +341,7 @@ class DictationApp:
     def _process_recorded_audio(self, recognizer, audio):
         """Process recorded audio in separate thread"""
         try:
-            text = recognizer.recognize_google(audio)
+            text = recognizer.recognize_google(audio, **self.config.get("recognize_google", {}))
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
 
@@ -393,7 +393,9 @@ class DictationApp:
     def _process_speech_recognition(self, audio):
         """Process audio through speech recognition and handle results"""
         try:
-            text = self.recognizer.recognize_google(audio)
+            text = self.recognizer.recognize_google(
+                audio, **self.config.get("recognize_google", {})
+            )
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
 
