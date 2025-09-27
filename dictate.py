@@ -19,6 +19,7 @@ main
 import argparse
 import errno
 import json
+import logging
 import os
 import select
 import signal
@@ -43,6 +44,7 @@ SAMPLE_RATE = 44100
 BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 params = None
+logger = logging.getLogger(os.path.basename(__file__))
 
 
 class DictationApp:
@@ -52,6 +54,7 @@ class DictationApp:
             with open("dictate.yaml", "r", encoding="utf-8") as f:
                 self.config = yaml.safe_load(f) or {}
         except Exception:
+            logger.debug(traceback.format_exc())
             pass
         self.recognizer_engine = self.config.get("general", {}).get("recognizer_engine", "google")
         self.status_window = None
@@ -151,7 +154,7 @@ class DictationApp:
                 return mic
             except Exception as e:
                 print(f"microphone {self.device_name} faied {e}")
-                traceback.print_exc()
+                logger.debug(traceback.format_exc())
                 mic = None
                 continue
 
@@ -221,6 +224,8 @@ class DictationApp:
                     pygame.mixer.quit()
 
             except Exception as e:
+                print(f"TTS with pygame failed: {e}")
+                logger.debug(traceback.format_exc())
                 # Fallback to system TTS
                 try:
                     subprocess.run(["espeak", text], check=True, capture_output=True)
@@ -239,6 +244,7 @@ class DictationApp:
                 self.setup_pasimple_recording()
             except Exception as e:
                 print(f"Failed to setup recording: {e}")
+                logger.debug(traceback.format_exc())
                 return None
 
         self.recorded_audio_chunks = []
@@ -248,6 +254,7 @@ class DictationApp:
             return self._record_chunks(BYTES_PER_SEC // 10, max_duration * 10, max_duration)
         except Exception as e:
             print(f"Recording failed: {e}")
+            logger.debug(traceback.format_exc())
             return None
 
     def _record_chunks(self, chunk_size, total_chunks, max_duration):
@@ -419,6 +426,7 @@ class DictationApp:
             return sr.AudioData(buf.getvalue(), SAMPLE_RATE, SAMPLE_WIDTH)
         except Exception as e:
             print(f"Audio conversion error: {e}")
+            logger.debug(traceback.format_exc())
             return None
 
     def _process_speech_recognition(self, audio):
@@ -471,6 +479,7 @@ class DictationApp:
             print(f"🔴 Recording with {self.device_name}")
         except Exception as e:
             print(f"Failed to start background listening: {e}")
+            logger.debug(traceback.format_exc())
             self.continuous_mode_active = False
 
     def _show_error(self, message):
@@ -534,6 +543,7 @@ class DictationApp:
         for cmd, (_, description) in self.commands.items():
             print(f"  echo '{cmd}' > {fifo_path} # {description}")
         print("Press Ctrl+C to exit")
+        logger.debug("Staring command loop")
 
         fifo = None
         try:
@@ -585,8 +595,21 @@ def main():
         default=True,
         help="Enable/disable echo to speak back the recognized text (default: enabled).",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode for detailed exception logging.",
+    )
     global params
     params = parser.parse_args()
+
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(
+        fmt="%(asctime)s %(levelname).1s %(name)s:%(lineno)d: %(funcName)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.DEBUG if params.debug else logging.INFO, handlers=[handler])
 
     pid_file = "/tmp/dictate.pid"
 
@@ -602,6 +625,7 @@ def main():
             pass
         except Exception as e:
             print(f"Error terminating previous instance: {e}")
+            logger.debug(traceback.format_exc())
 
     try:
         with open(pid_file, "w") as f:
@@ -620,6 +644,7 @@ def main():
             app.run()
         except Exception as e:
             print(f"Error starting application: {e}")
+            logger.debug(traceback.format_exc())
             sys.exit(1)
 
     finally:
