@@ -17,6 +17,7 @@ main
 """
 
 import errno
+import json
 import os
 import select
 import signal
@@ -59,6 +60,10 @@ class DictationApp:
             "google": {
                 "recognize": self.recognizer.recognize_google,
                 "parser": lambda result: result,
+            },
+            "vosk": {
+                "recognize": self.recognizer.recognize_vosk,
+                "parser": lambda result: json.loads(result).get("text", ""),
             },
         }
 
@@ -374,8 +379,9 @@ class DictationApp:
             threading.Thread(target=hide_later, daemon=True).start()
             pyautogui.typewrite(text + " ")
             self.speak_text(text)
+            if not text:
+                self.command = "stop"
         except sr.UnknownValueError:
-            self.command = "stop"
             print("No speech detected")
             self._show_error("No speech detected")
         except sr.RequestError as e:
@@ -386,6 +392,7 @@ class DictationApp:
             self._show_error("❌ Recognition error")
 
         if self.command == "stop":
+            print("Stopping")
             self.stop_listening(wait_for_stop=False)
             self.continuous_mode_active = False
             self.hide_status_window()
