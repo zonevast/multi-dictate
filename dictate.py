@@ -49,10 +49,19 @@ class DictationApp:
                 self.config = yaml.safe_load(f) or {}
         except Exception:
             pass
+        self.recognizer_engine = self.config.get("general", {}).get("recognizer_engine", "google")
         self.status_window = None
         self.show_status_window("Starting", "lightblue")
         self.recognizer = sr.Recognizer()
         vars(self.recognizer).update(self.config.get("Recognizer", {}))
+
+        self.recognizer_engines = {
+            "google": {
+                "recognize": self.recognizer.recognize_google,
+                "parser": lambda result: result,
+            },
+        }
+
         self.microphone = self.setup_microphone()
         if not self.microphone:
             print("ERROR: No working microphone found")
@@ -344,10 +353,17 @@ class DictationApp:
 
         threading.Thread(target=record_and_process, daemon=True).start()
 
+    def _recognize(self, audio):
+        engine = self.recognizer_engines.get(self.recognizer_engine)
+        config = self.config.get(f"recognize_{self.recognizer_engine}", {})
+        result = engine["recognize"](audio, **config)
+        return engine["parser"](result)
+
     def _process_recorded_audio(self, recognizer, audio):
         """Process recorded audio in separate thread"""
         try:
-            text = recognizer.recognize_google(audio, **self.config.get("recognize_google", {}))
+
+            text = self._recognize(audio)
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
 
@@ -399,9 +415,7 @@ class DictationApp:
     def _process_speech_recognition(self, audio):
         """Process audio through speech recognition and handle results"""
         try:
-            text = self.recognizer.recognize_google(
-                audio, **self.config.get("recognize_google", {})
-            )
+            text = self._recognize(audio)
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
 
