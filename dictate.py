@@ -244,8 +244,7 @@ class DictationApp:
                 elapsed = chunk_num * 0.1
                 self.show_status_window(f"🎤 Recording... {elapsed:.0f}s", "lightcoral")
 
-            chunk = self.pasimple_stream.read(chunk_size)
-            self.recorded_audio_chunks.append(chunk)
+            self.recorded_audio_chunks.append(self.pasimple_stream.read(chunk_size))
 
         return b"".join(self.recorded_audio_chunks)
 
@@ -289,14 +288,13 @@ class DictationApp:
 
                 self.status_window.configure(bg=color)
 
-            label = tk.Label(
+            tk.Label(
                 self.status_window,
                 text=message,
                 bg=color,
                 fg="black",
                 font=("Arial", 12),
-            )
-            label.pack(expand=True)
+            ).pack(expand=True)
             self.status_window.update()
 
         if threading.current_thread() is threading.main_thread():
@@ -519,14 +517,12 @@ class DictationApp:
             while not self.shutdown_flag:
                 # Process GUI queue
                 while self.gui_queue:
-                    gui_update = self.gui_queue.pop(0)
-                    gui_update()
+                    self.gui_queue.pop(0)()
 
                 if not fifo:
                     try:
                         # Use non-blocking open to avoid getting stuck
-                        fifo_fd = os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK)
-                        fifo = os.fdopen(fifo_fd, "r")
+                        fifo = os.fdopen(os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK), "r")
                     except OSError as e:
                         if e.errno == errno.ENXIO:  # No writer yet
                             time.sleep(0.1)
