@@ -16,6 +16,7 @@ main
 
 """
 
+import argparse
 import errno
 import json
 import os
@@ -40,6 +41,8 @@ SAMPLE_WIDTH = pasimple.format2width(FORMAT)
 CHANNELS = 1
 SAMPLE_RATE = 44100
 BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
+
+params = None
 
 
 class DictationApp:
@@ -77,7 +80,6 @@ class DictationApp:
         self.recording_active = False
         self.stop_recording_flag = False
         self.recorded_audio_chunks = []
-        self.speech_echo_enabled = False
         self.continuous_mode_active = False
         self.shutdown_flag = False
 
@@ -176,7 +178,7 @@ class DictationApp:
 
     def speak_text(self, text):
         """Convert text to speech using gTTS with fallbacks"""
-        if not self.speech_echo_enabled:
+        if not params.echo:
             return
 
         def speak_in_thread():
@@ -493,8 +495,8 @@ class DictationApp:
 
     def _toggle_speech_echo(self):
         """Toggle speech echo on/off"""
-        self.speech_echo_enabled = not self.speech_echo_enabled
-        status = "enabled" if self.speech_echo_enabled else "disabled"
+        params.echo = not params.echo
+        status = "enabled" if params.echo else "disabled"
         print(f"Speech echo {status}")
         self.show_status_window(f"Echo {status}", "lightblue")
 
@@ -576,6 +578,16 @@ def check_dependencies():
 
 def main():
     """Main entry point"""
+    parser = argparse.ArgumentParser(description="Text Dictation Application")
+    parser.add_argument(
+        "--echo",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Enable/disable echo to speak back the recognized text (default: enabled).",
+    )
+    global params
+    params = parser.parse_args()
+
     pid_file = "/tmp/dictate.pid"
 
     if os.path.exists(pid_file):
