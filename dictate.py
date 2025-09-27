@@ -21,6 +21,7 @@ import errno
 import json
 import logging
 import os
+import re
 import select
 import signal
 import subprocess
@@ -32,6 +33,7 @@ import traceback
 import warnings
 from io import BytesIO
 
+import Levenshtein
 import pasimple
 import pyautogui
 import speech_recognition as sr
@@ -117,6 +119,44 @@ class DictationApp:
 
         print("Dictation app initialized.")
 
+    def calibrate(self):
+        """Calibrate voice recognition with all available engines."""
+        intro = "Say this text for calibration of voice recognition during 20 seconds:"
+        orig = "This quick voice checks sharp sounds, tests warm tone, and sings with vision."
+        print("Calibration")
+        print(f" {intro}\n\n\u001b[1m{orig}\u001b[0m")
+        self.speak_text(intro + orig, sync=True)
+
+        print("Recording 🎤")
+        audio = self._convert_raw_audio_to_sr_format(self.record_audio(20))
+        self.hide_status_window()
+        self.speak_text("Thank you.")
+        if not audio:
+            print("Calibration failed: Audio conversion error.")
+            return
+
+        results = []
+        print(f"Recognizing")
+        for engine_name, engine_details in self.recognizer_engines.items():
+            print(f"  {engine_name}")
+            try:
+                config = self.config.get(f"recognize_{engine_name}", {})
+                user = engine_details["parser"](engine_details["recognize"](audio, **config))
+                dist = Levenshtein.distance(re.sub(r"[^\w\s]", "", orig).lower(), user)
+                results.append({"engine": engine_name, "text": user, "dist": dist})
+                print(f"    Recognized: '{user}'")
+                print(f"    Distance: {dist} (lower is better)")
+            except Exception as e:
+                print(f"    Error with {engine_name}: {e}")
+                results.append({"engine": engine_name, "text": "Error", "dist": float("inf")})
+
+        results.sort(key=lambda x: x["dist"])
+
+        if results:
+            print(f"Recommended: {results[0]['engine']}")
+        else:
+            print("\nCould not determine the best engine.")
+
     def signal_handler(self, sig, frame):
         """Handle SIGINT gracefully."""
         print("\nCaught Ctrl+C, shutting down...")
@@ -178,13 +218,15 @@ class DictationApp:
         )
         return True
 
-    def speak_text(self, text):
+    def speak_text(self, text, sync=False):
         """Convert text to speech using gTTS with fallbacks"""
         if not params.echo:
             return
 
         def speak_in_thread():
             try:
+                warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
+                os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
                 import pygame
 
                 tts = gTTS(text, **self.config.get("gTTS", {}))
@@ -234,7 +276,10 @@ class DictationApp:
                     except (subprocess.CalledProcessError, FileNotFoundError):
                         print(f"TTS failed: {e}")
 
-        threading.Thread(target=speak_in_thread, daemon=True).start()
+        if sync:
+            speak_in_thread()
+        else:
+            threading.Thread(target=speak_in_thread, daemon=True).start()
 
     def record_audio(self, max_duration=60):
         """Record audio manually until stop command or timeout"""
@@ -599,6 +644,11 @@ def main():
         action="store_true",
         help="Enable debug mode for detailed exception logging.",
     )
+    parser.add_argument(
+        "--calibrate",
+        action="store_true",
+        help="Run calibration to find the best speech recognition engine.",
+    )
     global params
     params = parser.parse_args()
 
@@ -639,6 +689,11 @@ def main():
 
         app = DictationApp()
         signal.signal(signal.SIGINT, app.signal_handler)
+
+        if params.calibrate:
+            app.calibrate()
+            sys.exit(0)
+
         try:
             app.run()
         except Exception as e:
