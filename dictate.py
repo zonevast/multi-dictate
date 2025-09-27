@@ -479,8 +479,12 @@ class DictationApp:
         print(f"Speech echo {status}")
         self.show_status_window(f"Echo {status}", "lightblue")
 
-    def input_command(self, line):
-        line = line.strip()
+    def input_command(self, fifo):
+        # Wait for data on the fifo with a timeout
+        ready, _, _ = select.select([fifo], [], [], 0.5)
+        if not ready:
+            return
+        line = fifo.readline().strip()
         if line:
             self.command = line
             print(f" >>> {line}")
@@ -530,12 +534,7 @@ class DictationApp:
                         else:  # Other OS error
                             raise  # Other OS error
 
-                # Wait for data on the fifo with a timeout
-                ready, _, _ = select.select([fifo], [], [], 0.5)
-
-                if ready:
-                    line = fifo.readline()
-                    self.input_command(line)
+                self.input_command(fifo)
         finally:
             print("\nExiting...")
             if fifo:
