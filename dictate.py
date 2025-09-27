@@ -559,20 +559,48 @@ def check_dependencies():
 
 def main():
     """Main entry point"""
-    if not check_dependencies():
-        sys.exit(1)
+    pid_file = "/tmp/dictate.pid"
 
-    if sys.platform != "linux":
-        print("This application is designed for Linux systems.")
-        sys.exit(1)
+    if os.path.exists(pid_file):
+        try:
+            with open(pid_file, "r") as f:
+                pid = int(f.read().strip())
+            print(f"Terminating previous instance with PID {pid}...")
+            os.kill(pid, signal.SIGTERM)
+            time.sleep(0.1)  # Give it a moment to terminate
+        except (IOError, ValueError, ProcessLookupError):
+            # Stale PID file or process not found
+            pass
+        except Exception as e:
+            print(f"Error terminating previous instance: {e}")
 
-    app = DictationApp()
-    signal.signal(signal.SIGINT, app.signal_handler)
     try:
-        app.run()
-    except Exception as e:
-        print(f"Error starting application: {e}")
-        sys.exit(1)
+        with open(pid_file, "w") as f:
+            f.write(str(os.getpid()))
+
+        if not check_dependencies():
+            sys.exit(1)
+
+        if sys.platform != "linux":
+            print("This application is designed for Linux systems.")
+            sys.exit(1)
+
+        app = DictationApp()
+        signal.signal(signal.SIGINT, app.signal_handler)
+        try:
+            app.run()
+        except Exception as e:
+            print(f"Error starting application: {e}")
+            sys.exit(1)
+
+    finally:
+        if os.path.exists(pid_file):
+            try:
+                with open(pid_file, "r") as f:
+                    if int(f.read().strip()) == os.getpid():
+                        os.remove(pid_file)
+            except (IOError, ValueError):
+                pass  # Ignore errors on cleanup
 
 
 if __name__ == "__main__":
