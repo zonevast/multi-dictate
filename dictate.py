@@ -16,8 +16,10 @@ main
 
 """
 
+import errno
 import os
 import select
+import signal
 import subprocess
 import sys
 import threading
@@ -63,6 +65,7 @@ class DictationApp:
         self.recorded_audio_chunks = []
         self.speech_echo_enabled = False
         self.continuous_mode_active = False
+        self.shutdown_flag = False
 
         # Command mapping
         self.commands = {
@@ -90,6 +93,11 @@ class DictationApp:
         self.hide_status_window()
 
         print("Dictation app initialized.")
+
+    def signal_handler(self, sig, frame):
+        """Handle SIGINT gracefully."""
+        print("\nCaught Ctrl+C, shutting down...")
+        self.shutdown_flag = True
 
     def setup_microphone(self):
         """Initialize microphone with fallback to multiple device indices."""
@@ -471,8 +479,8 @@ class DictationApp:
         print(f"Speech echo {status}")
         self.show_status_window(f"Echo {status}", "lightblue")
 
-    def input_command(self, fifo):
-        line = fifo.readline().strip()
+    def input_command(self, line):
+        line = line.strip()
         if line:
             self.command = line
             print(f" >>> {line}")
@@ -502,28 +510,36 @@ class DictationApp:
             print(f"  echo '{cmd}' > {fifo_path} # {description}")
         print("Press Ctrl+C to exit")
 
+        fifo = None
         try:
-            with open(fifo_path, "r") as fifo:
-                while True:
+            while not self.shutdown_flag:
+                # Process GUI queue
+                while self.gui_queue:
+                    gui_update = self.gui_queue.pop(0)
+                    gui_update()
+
+                if not fifo:
                     try:
-                        # Process GUI queue
-                        while self.gui_queue:
-                            gui_update = self.gui_queue.pop(0)
-                            gui_update()
+                        # Use non-blocking open to avoid getting stuck
+                        fifo_fd = os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK)
+                        fifo = os.fdopen(fifo_fd, "r")
+                    except OSError as e:
+                        if e.errno == errno.ENXIO:  # No writer yet
+                            time.sleep(0.1)
+                            continue
+                        else:  # Other OS error
+                            raise  # Other OS error
 
-                        # Use select with longer timeout for efficiency
-                        ready, _, _ = select.select([fifo], [], [], 1.0)
-                        if ready:
-                            self.input_command(fifo)
+                # Wait for data on the fifo with a timeout
+                ready, _, _ = select.select([fifo], [], [], 0.5)
 
-                    except KeyboardInterrupt:
-                        break
-                    except Exception as e:
-                        print(f"FIFO read error: {e}")
-
-        except KeyboardInterrupt:
-            print("\nExiting...")
+                if ready:
+                    line = fifo.readline()
+                    self.input_command(line)
         finally:
+            print("\nExiting...")
+            if fifo:
+                fifo.close()
             if os.path.exists(fifo_path):
                 os.remove(fifo_path)
             self.hide_status_window()
@@ -551,8 +567,9 @@ def main():
         print("This application is designed for Linux systems.")
         sys.exit(1)
 
+    app = DictationApp()
+    signal.signal(signal.SIGINT, app.signal_handler)
     try:
-        app = DictationApp()
         app.run()
     except Exception as e:
         print(f"Error starting application: {e}")
