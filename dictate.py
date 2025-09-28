@@ -642,6 +642,9 @@ def main():
     )
     handler.setFormatter(formatter)
     logging.basicConfig(level=logging.DEBUG if params.debug else logging.INFO, handlers=[handler])
+    if params.debug:
+        for lib in ["gtts", "speech_recognition", "urllib3"]:
+            logging.getLogger(lib).setLevel(logging.INFO)
 
     pid_file = "/tmp/dictate.pid"
 
