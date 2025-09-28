@@ -417,6 +417,7 @@ class DictationApp:
     def _process_audio(self, audio, continuous=False):
         """Process audio through speech recognition and handle results"""
         logger.debug("")
+        text = None
         try:
             text = self._recognize(audio)
             print(f"> {text}")
@@ -431,8 +432,6 @@ class DictationApp:
             pyautogui.typewrite(text + " ")
             if not continuous:
                 self.speak_text(text)
-            if continuous and not text:
-                self.command = "stop"
         except sr.UnknownValueError:
             print("No speech detected")
             self._show_error("No speech detected")
@@ -442,6 +441,9 @@ class DictationApp:
         except Exception as e:
             print(f"❌ Recognition error: {e}")
             self._show_error("❌ Recognition error")
+        finally:
+            if continuous and not text:
+                self.command = "stop"
 
         if continuous:
             if self.command == "stop":
