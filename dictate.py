@@ -304,6 +304,7 @@ class DictationApp:
 
     def _record_chunks(self, chunk_size, total_chunks, max_duration):
         """Record audio chunks in a loop"""
+        logger.debug("")
         for chunk_num in range(total_chunks):
             if self.stop_recording_flag:
                 break
@@ -315,11 +316,6 @@ class DictationApp:
             self.recorded_audio_chunks.append(self.pasimple_stream.read(chunk_size))
 
         return b"".join(self.recorded_audio_chunks)
-
-    def _combine_audio_chunks(self):
-        """Combine recorded audio chunks into single audio data"""
-        if not self.recorded_audio_chunks:
-            return None
 
     def stop_manual_recording(self):
         if not self.recording_active:
@@ -420,8 +416,8 @@ class DictationApp:
 
     def _process_audio(self, audio, continuous=False):
         """Process audio through speech recognition and handle results"""
+        logger.debug("")
         try:
-            logger.debug("")
             text = self._recognize(audio)
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
@@ -461,6 +457,7 @@ class DictationApp:
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
+        logger.debug("")
         try:
             import io
             import wave
@@ -471,9 +468,9 @@ class DictationApp:
                 f.setsampwidth(SAMPLE_WIDTH)
                 f.setframerate(SAMPLE_RATE)
                 f.writeframes(data)
-
             buf.seek(0)
             return sr.AudioData(buf.getvalue(), SAMPLE_RATE, SAMPLE_WIDTH)
+
         except Exception as e:
             print(f"Audio conversion error: {e}")
             logger.debug(traceback.format_exc())
@@ -481,8 +478,10 @@ class DictationApp:
 
     def start_continuous_recording(self):
         """Start continuous audio recording - records until silence/pause detected"""
+        logger.debug("")
 
         def recorded_cb(_, audio):
+            logger.debug("")
             self.show_status_window("⏳ Processing...", "lightsalmon")
             threading.Thread(
                 target=self._process_audio,
@@ -510,6 +509,7 @@ class DictationApp:
 
     def _show_error(self, message):
         """Show error window"""
+        logger.debug("")
         self.show_status_window(message, "lightcoral")
 
         # Auto-hide after 2 seconds
