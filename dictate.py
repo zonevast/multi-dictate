@@ -270,7 +270,7 @@ class DictationApp:
                 logger.debug(traceback.format_exc())
                 # Fallback to system TTS
                 try:
-                    subprocess.run(["espeak", text], check=True, capture_output=True)
+                    subprocess.run(["espeak", "-a", "10", text], check=True, capture_output=True)
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     try:
                         subprocess.run(["spd-say", text], check=True, capture_output=True)
