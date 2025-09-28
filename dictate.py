@@ -220,7 +220,8 @@ class DictationApp:
 
     def speak_text(self, text, sync=False):
         """Convert text to speech using gTTS with fallbacks"""
-        if not params.echo:
+        logger.debug(f"'{text}'")
+        if not text or not params.echo:
             return
 
         def speak_in_thread():
