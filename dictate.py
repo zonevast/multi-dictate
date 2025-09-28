@@ -260,11 +260,15 @@ class DictationApp:
                 pygame.mixer.music.play()
 
                 # Wait for playback to finish
-                while pygame.mixer.music.get_busy():
-                    pygame.time.wait(100)
+                try:
+                    while pygame.mixer.music.get_busy():
+                        pygame.time.wait(100)
 
-                if pygame.mixer.get_init():
-                    pygame.mixer.quit()
+                    if pygame.mixer.get_init():
+                        pygame.mixer.quit()
+                except Exception as e:
+                    logger.debug("{e}")
+                    pass
 
             except Exception as e:
                 print(f"TTS with pygame failed: {e}")
