@@ -51,6 +51,7 @@ BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 params = None
 logger = logging.getLogger(os.path.basename(__file__))
+fifo_path = "/tmp/dictate_trigger"
 
 
 class DictationApp:
@@ -540,6 +541,17 @@ class DictationApp:
 
     def input_command(self, fifo):
         # Wait for data on the fifo with a timeout
+        if not fifo:
+            try:
+                # Use non-blocking open to avoid getting stuck
+                fifo = os.fdopen(os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK), "r")
+            except OSError as e:
+                if e.errno == errno.ENXIO:  # No writer yet
+                    time.sleep(0.1)
+                    return
+                else:  # Other OS error
+                    raise  # Other OS error
+
         ready, _, _ = select.select([fifo], [], [], 0.5)
         if not ready:
             return
@@ -557,7 +569,6 @@ class DictationApp:
         """Start the FIFO listener"""
         print("Dictation app is running...")
 
-        fifo_path = "/tmp/dictate_trigger"
         if os.path.exists(fifo_path):
             os.remove(fifo_path)
 
@@ -580,17 +591,6 @@ class DictationApp:
                 # Process GUI queue
                 while self.gui_queue:
                     self.gui_queue.pop(0)()
-
-                if not fifo:
-                    try:
-                        # Use non-blocking open to avoid getting stuck
-                        fifo = os.fdopen(os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK), "r")
-                    except OSError as e:
-                        if e.errno == errno.ENXIO:  # No writer yet
-                            time.sleep(0.1)
-                            continue
-                        else:  # Other OS error
-                            raise  # Other OS error
 
                 self.input_command(fifo)
         finally:
