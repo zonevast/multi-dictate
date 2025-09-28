@@ -166,6 +166,8 @@ class DictationApp:
         """Handle SIGINT gracefully."""
         print("\nCaught Ctrl+C, shutting down...")
         self.shutdown_flag = True
+        time.sleep(3)
+        sys.exit(1)
 
     def setup_microphone(self):
         """Initialize microphone with fallback to multiple device indices."""
@@ -315,7 +317,7 @@ class DictationApp:
         """Record audio chunks in a loop"""
         logger.debug("")
         for chunk_num in range(total_chunks):
-            if self.stop_recording_flag:
+            if self.stop_recording_flag or self.shutdown_flag:
                 break
 
             if chunk_num % 10 == 0:
