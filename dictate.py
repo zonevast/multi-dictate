@@ -136,7 +136,7 @@ class DictationApp:
             return
 
         results = []
-        print(f"Recognizing")
+        print("Recognizing")
         for engine_name, engine_details in self.recognizer_engines.items():
             print(f"  {engine_name}")
             try:
@@ -197,7 +197,7 @@ class DictationApp:
                 print(f"Using microphone: {self.device_name}")
                 return mic
             except Exception as e:
-                print(f"microphone {self.device_name} faied {e}")
+                print(f"microphone {self.device_name} failed {e}")
                 logger.debug(traceback.format_exc())
                 mic = None
                 continue
@@ -405,7 +405,7 @@ class DictationApp:
                     self._show_error("Audio conversion failed")
                     return
 
-                self._process_speech_recognition(audio)
+                self._process_audio(audio, continuous=False)
             finally:
                 self.recording_active = False
 
@@ -420,7 +420,6 @@ class DictationApp:
     def _process_recorded_audio(self, recognizer, audio):
         """Process recorded audio in separate thread"""
         try:
-
             text = self._recognize(audio)
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
@@ -533,6 +532,7 @@ class DictationApp:
         # Auto-hide after 2 seconds
         def hide_later():
             time.sleep(2)
+            logger.debug("")
             self.hide_status_window()
 
         threading.Thread(target=hide_later, daemon=True).start()
