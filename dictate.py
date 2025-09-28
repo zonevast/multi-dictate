@@ -39,14 +39,15 @@ import pyautogui
 import speech_recognition as sr
 import yaml
 from gtts import gTTS
+from pydub import AudioSegment
 from vosk import SetLogLevel
 
 SetLogLevel(-1)
 
-FORMAT = pasimple.PA_SAMPLE_S32LE
+FORMAT = pasimple.PA_SAMPLE_S16LE
 SAMPLE_WIDTH = pasimple.format2width(FORMAT)
 CHANNELS = 1
-SAMPLE_RATE = 44100
+SAMPLE_RATE = 24000
 BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 params = None
@@ -92,6 +93,7 @@ class DictationApp:
         self.recorded_audio_chunks = []
         self.continuous_mode_active = False
         self.shutdown_flag = False
+        self._cleaned_up = False
 
         # Command mapping
         self.commands = {
@@ -117,6 +119,9 @@ class DictationApp:
             print("WARNING: No microphone available")
 
         self.hide_status_window()
+
+        self.setup_pasimple_recording()
+        self.tts_lock = threading.Lock()
 
         print("Dictation app initialized.")
 
@@ -166,8 +171,6 @@ class DictationApp:
         """Handle SIGINT gracefully."""
         print("\nCaught Ctrl+C, shutting down...")
         self.shutdown_flag = True
-        time.sleep(3)
-        sys.exit(1)
 
     def setup_microphone(self):
         """Initialize microphone with fallback to multiple device indices."""
@@ -226,67 +229,56 @@ class DictationApp:
         return True
 
     def speak_text(self, text, sync=False):
-        """Convert text to speech using gTTS with fallbacks"""
+        """Convert text to speech using gTTS and pasimple."""
         logger.debug(f"'{text}'")
         if not text or not params.echo:
             return
 
         def speak_in_thread():
-            try:
-                warnings.filterwarnings("ignore", message="pkg_resources is deprecated as an API")
-                os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
-                import pygame
-
-                tts = gTTS(text, **self.config.get("gTTS", {}))
-                audio_buffer = BytesIO()
-                tts.write_to_fp(audio_buffer)
-                audio_buffer.seek(0)
-
-                # Try different audio drivers for compatibility
-                audio_drivers = [
-                    {},  # Default settings
-                    {"frequency": 22050, "size": -16, "channels": 2, "buffer": 512},
-                    {"frequency": 44100, "size": -16, "channels": 1, "buffer": 1024},
-                ]
-
-                mixer_initialized = False
-                for audio_config in audio_drivers:
-                    try:
-                        pygame.mixer.init(**audio_config)
-                        mixer_initialized = True
-                        break
-                    except pygame.error:
-                        continue
-
-                if not mixer_initialized:
-                    raise pygame.error("Could not initialize audio")
-
-                pygame.mixer.music.load(audio_buffer)
-                pygame.mixer.music.set_volume(0.1)
-                pygame.mixer.music.play()
-
-                # Wait for playback to finish
+            with self.tts_lock:
                 try:
-                    while pygame.mixer.music.get_busy():
-                        pygame.time.wait(100)
+                    # Generate audio with gTTS
+                    tts = gTTS(text, **self.config.get("gTTS", {}))
+                    audio_buffer = BytesIO()
+                    tts.write_to_fp(audio_buffer)
+                    audio_buffer.seek(0)
 
-                    if pygame.mixer.get_init():
-                        pygame.mixer.quit()
+                    # Decode MP3 with pydub
+                    audio = AudioSegment.from_mp3(audio_buffer)
+
+                    # Reduce volume by 20 dB (to approx 10% of original)
+                    audio -= 20
+
+                    logger.debug(
+                        f"Decoded audio: {audio.channels} channels, "
+                        f"{audio.frame_rate} Hz, {len(audio.raw_data)} bytes"
+                    )
+
+                    # Play audio with pasimple
+                    with pasimple.PaSimple(
+                        pasimple.PA_STREAM_PLAYBACK,
+                        pasimple.PA_SAMPLE_S16LE,  # pydub default
+                        audio.channels,
+                        audio.frame_rate,
+                        app_name="dictate-app",
+                        stream_name="playback",
+                    ) as pa:
+                        pa.write(audio.raw_data)
+                        pa.drain()
+
                 except Exception as e:
-                    logger.debug("{e}")
-                    pass
-
-            except Exception as e:
-                print(f"TTS with pygame failed: {e}")
-                logger.debug(traceback.format_exc())
-                # Fallback to system TTS
-                try:
-                    subprocess.run(["espeak", "-a", "10", text], check=True, capture_output=True)
-                except (subprocess.CalledProcessError, FileNotFoundError):
+                    print(f"TTS with gTTS/pasimple failed: {e}")
+                    logger.debug(traceback.format_exc())
+                    # Fallback to system TTS
                     try:
-                        subprocess.run(["spd-say", text], check=True, capture_output=True)
+                        subprocess.run(
+                            ["espeak", "-a", "10", text], check=True, capture_output=True
+                        )
                     except (subprocess.CalledProcessError, FileNotFoundError):
-                        print(f"TTS failed: {e}")
+                        try:
+                            subprocess.run(["spd-say", text], check=True, capture_output=True)
+                        except (subprocess.CalledProcessError, FileNotFoundError):
+                            print(f"All TTS methods failed for: {text}")
 
         if sync:
             speak_in_thread()
@@ -296,12 +288,8 @@ class DictationApp:
     def record_audio(self, max_duration=60):
         """Record audio manually until stop command or timeout"""
         if not self.pasimple_stream:
-            try:
-                self.setup_pasimple_recording()
-            except Exception as e:
-                print(f"Failed to setup recording: {e}")
-                logger.debug(traceback.format_exc())
-                return None
+            print("Failed to setup recording")
+            return None
 
         self.recorded_audio_chunks = []
         self.stop_recording_flag = False
@@ -465,8 +453,7 @@ class DictationApp:
             elif self.continuous_mode_active:
                 # Keep showing listening status in continuous mode
                 self.show_status_window("🎤 Listening...", "lightcoral")
-        else:
-            self.speak_text(text)
+
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -604,12 +591,20 @@ class DictationApp:
 
                 self.input_command(fifo)
         finally:
-            print("\nExiting...")
-            if fifo:
-                fifo.close()
-            if os.path.exists(fifo_path):
-                os.remove(fifo_path)
-            self.hide_status_window()
+            self._cleanup()
+
+    def _cleanup(self):
+        """Cleanup resources"""
+        if self._cleaned_up:
+            return
+        self._cleaned_up = True
+
+        print("\nCleaning up resources...")
+        if self.pasimple_stream:
+            self.pasimple_stream = None  # Allow garbage collection
+        if os.path.exists(fifo_path):
+            os.remove(fifo_path)
+        self.hide_status_window()
 
 
 def check_dependencies():
@@ -655,7 +650,7 @@ def main():
     handler.setFormatter(formatter)
     logging.basicConfig(level=logging.DEBUG if params.debug else logging.INFO, handlers=[handler])
     if params.debug:
-        for lib in ["gtts", "speech_recognition", "urllib3"]:
+        for lib in ["gtts", "speech_recognition", "urllib3", "pydub"]:
             logging.getLogger(lib).setLevel(logging.INFO)
 
     pid_file = "/tmp/dictate.pid"
