@@ -1,5 +1,5 @@
 general:
-  recognizer_engine: vosk
+  recognizer_engine: google
 Recognizer:
   pause_threshold: 1
 recognize_google:
