@@ -418,21 +418,24 @@ class DictationApp:
         result = engine["recognize"](audio, **config)
         return engine["parser"](result)
 
-    def _process_recorded_audio(self, recognizer, audio):
-        """Process recorded audio in separate thread"""
+    def _process_audio(self, audio, continuous=False):
+        """Process audio through speech recognition and handle results"""
         try:
+            logger.debug("")
             text = self._recognize(audio)
             print(f"> {text}")
             self.show_status_window(text, "lightgreen")
 
             def hide_later():
+                logger.debug("")
                 time.sleep(3)
                 self.hide_status_window()
 
             threading.Thread(target=hide_later, daemon=True).start()
             pyautogui.typewrite(text + " ")
-            self.speak_text(text)
-            if not text:
+            if not continuous:
+                self.speak_text(text)
+            if continuous and not text:
                 self.command = "stop"
         except sr.UnknownValueError:
             print("No speech detected")
@@ -444,14 +447,17 @@ class DictationApp:
             print(f"❌ Recognition error: {e}")
             self._show_error("❌ Recognition error")
 
-        if self.command == "stop":
-            print("Stopping")
-            self.stop_listening(wait_for_stop=False)
-            self.continuous_mode_active = False
-            self.hide_status_window()
-        elif self.continuous_mode_active:
-            # Keep showing listening status in continuous mode
-            self.show_status_window("🎤 Listening...", "lightcoral")
+        if continuous:
+            if self.command == "stop":
+                print("Stopping")
+                self.stop_listening(wait_for_stop=False)
+                self.continuous_mode_active = False
+                self.hide_status_window()
+            elif self.continuous_mode_active:
+                # Keep showing listening status in continuous mode
+                self.show_status_window("🎤 Listening...", "lightcoral")
+        else:
+            self.speak_text(text)
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -473,38 +479,14 @@ class DictationApp:
             logger.debug(traceback.format_exc())
             return None
 
-    def _process_speech_recognition(self, audio):
-        """Process audio through speech recognition and handle results"""
-        try:
-            text = self._recognize(audio)
-            print(f"> {text}")
-            self.show_status_window(text, "lightgreen")
-
-            def hide_later():
-                time.sleep(3)
-                self.hide_status_window()
-
-            threading.Thread(target=hide_later, daemon=True).start()
-            pyautogui.typewrite(text + " ")
-            self.speak_text(text)
-        except sr.UnknownValueError:
-            print("No speech detected")
-            self._show_error("No speech detected")
-        except sr.RequestError as e:
-            print(f"❌ Speech service error: {e}")
-            self._show_error("❌ Service error")
-        except Exception as e:
-            print(f"❌ Recognition error: {e}")
-            self._show_error("❌ Recognition error")
-
     def start_continuous_recording(self):
         """Start continuous audio recording - records until silence/pause detected"""
 
-        def recorded_cb(recognizer, audio):
+        def recorded_cb(_, audio):
             self.show_status_window("⏳ Processing...", "lightsalmon")
             threading.Thread(
-                target=self._process_recorded_audio,
-                args=(recognizer, audio),
+                target=self._process_audio,
+                args=(audio, True),
                 daemon=True,
             ).start()
             # Return immediately to caller
