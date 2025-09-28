@@ -122,14 +122,18 @@ class DictationApp:
 
     def calibrate(self):
         """Calibrate voice recognition with all available engines."""
-        intro = "Say this text for calibration of voice recognition during 20 seconds:"
-        orig = "This quick voice checks sharp sounds, tests warm tone, and sings with vision."
+        duration = self.config.get("calibrate", {}).get("duration", 20)
+        intro = f"Say this text for calibration of voice recognition during {duration} seconds:"
+        orig = self.config.get("calibrate", {}).get(
+            "asr_calibration_text",
+            "This quick voice checks sharp sounds, tests warm tone, and sings with vision.",
+        )
         print("Calibration")
         print(f" {intro}\n\n\u001b[1m{orig}\u001b[0m")
         self.speak_text(intro + orig, sync=True)
 
         print("Recording 🎤")
-        audio = self._convert_raw_audio_to_sr_format(self.record_audio(20))
+        audio = self._convert_raw_audio_to_sr_format(self.record_audio(duration))
         self.hide_status_window()
         self.speak_text("Thank you.")
         if not audio:
@@ -148,12 +152,12 @@ class DictationApp:
                 print(f"    Recognized: '{user}'")
                 print(f"    Distance: {dist} (lower is better)")
             except Exception as e:
-                print(f"    Error with {engine_name}: {e}")
+                print(f"    Error: {e}")
                 results.append({"engine": engine_name, "text": "Error", "dist": float("inf")})
 
         results.sort(key=lambda x: x["dist"])
 
-        if results:
+        if results and results[0]['dist'] < 100:
             print(f"Recommended: {results[0]['engine']}")
         else:
             print("\nCould not determine the best engine.")

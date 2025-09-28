@@ -6,3 +6,9 @@ recognize_google:
   language: en
 gTTS:
   lang: en
+calibrate:
+  duration: 30
+  asr_calibration_text: |
+    The quick brown fox jumps over the lazy dog.
+    The dog thinks hard, hanging his head and humming a song.
+    The fox judges each choice with vision, chewing cool food on the lawn.
