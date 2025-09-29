@@ -5,14 +5,12 @@ Fedora Linux Text Dictation Application
 Activates with hotkey, records audio, converts to text using Google Speech
 Recognition, and pastes the result into the current input field.
 
-main
-    run
-        __init__
-            listen_in_background -> speech_recognition
-                recorded_cb
-                    recognize_google -> speech_recognition
-                    insert_text
-                        typewrite -> pyautogui
+interfaces:
+    pasimple.PaSimple pulse audio
+    webrtcvad.Vad
+    speech_recognition.recognize_google
+    pyautogui.typewrite
+    tkinter.Label
 
 """
 
