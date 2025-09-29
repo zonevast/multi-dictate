@@ -126,7 +126,7 @@ class DictationApp:
         print(f" {intro}\n\n\u001b[1m{orig}\u001b[0m")
         self.speak_text(intro + orig, sync=True)
 
-        print("Recording 🎤")
+        print("Listening 🎤")
         audio = self._convert_raw_audio_to_sr_format(self.record_audio(duration))
         self.hide_status_window()
         self.speak_text("Thank you.")
@@ -296,7 +296,7 @@ class DictationApp:
 
             if chunk_num % (1000 // chunk_duration_ms) == 0:
                 elapsed = chunk_num * chunk_duration_ms / 1000
-                self.show_status_window(f"🎤 Listening... {elapsed:.0f}s", "lightcoral")
+                self.show_status_window(f"Listening 🎤 {elapsed:.0f}s", "lightcoral")
 
         return b"".join(recorded_audio_chunks)
 
@@ -370,7 +370,7 @@ class DictationApp:
             return
 
         self.recording_active = True
-        self.show_status_window("🎤 Recording...", "lightcoral")
+        self.show_status_window("Listening 🎤 ", "lightcoral")
 
         def record_and_process():
             try:
@@ -379,7 +379,7 @@ class DictationApp:
                     self._show_error("Recording failed")
                     return
 
-                self.show_status_window("⏳ Processing...", "lightsalmon")
+                self.show_status_window("Processing ⏳", "lightsalmon")
 
                 audio = self._convert_raw_audio_to_sr_format(data)
                 if not audio:
@@ -436,7 +436,7 @@ class DictationApp:
                 self.hide_status_window()
             elif self.continuous_mode_active:
                 # Keep showing listening status in continuous mode
-                self.show_status_window("🎤 Listening...", "lightcoral")
+                self.show_status_window("Listening 🎤", "lightcoral")
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -468,11 +468,11 @@ class DictationApp:
             return
 
         self.continuous_mode_active = True
-        self.show_status_window("🎤 Listening...", "lightcoral")
+        self.show_status_window("Listening 🎤 ", "lightcoral")
 
         def continuous_record_and_process():
             try:
-                print("🎤 Recording")
+                print("Listening 🎤")
                 while self.continuous_mode_active and not self.shutdown_flag:
                     # Record audio until silence is detected
                     data = self.record_audio(max_duration=60, stop_on_silence=True)
