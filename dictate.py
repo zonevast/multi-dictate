@@ -65,7 +65,6 @@ class DictationApp:
             logger.debug(traceback.format_exc())
         self.recognizer_engine = self.config.get("general", {}).get("recognizer_engine", "google")
         self.status_window = None
-        self.show_status_window("Starting", "lightblue")
         self.recognizer = sr.Recognizer()
         self.vad = webrtcvad.Vad()
         self.vad.set_mode(
@@ -84,10 +83,6 @@ class DictationApp:
                 "parser": lambda result: json.loads(result).get("text", ""),
             },
         }
-
-        self.microphone = self.setup_microphone()
-        if not self.microphone:
-            print("ERROR: No working microphone found")
 
         self.gui_queue = []
         self.command = None
@@ -109,18 +104,6 @@ class DictationApp:
             ),
             "echo": (self._toggle_speech_echo, "Toggle speech echo on/off"),
         }
-
-        # Configure speech recognition if microphone is available
-        if self.microphone:
-            try:
-                with self.microphone as source:
-                    self.recognizer.adjust_for_ambient_noise(source)
-                    print("Audio calibration complete")
-            except Exception as e:
-                print(f"Audio calibration failed: {e}")
-        else:
-            print("WARNING: No microphone available")
-        self.hide_status_window()
 
         self.setup_pasimple_recording()
         self.tts_lock = threading.Lock()
@@ -174,47 +157,6 @@ class DictationApp:
         print("\nCaught Ctrl+C, shutting down...")
         self.shutdown_flag = True
 
-    def setup_microphone(self):
-        """Initialize microphone with fallback to multiple device indices."""
-        microphone_names = sr.Microphone.list_microphone_names()
-        print("Available microphones:")
-        for index, name in enumerate(microphone_names):
-            print(f"  {index}: {name}")
-
-        mic = None
-        for device_idx in [None, 1, 0, 2]:
-            # Get the actual device name if available
-            if device_idx is None:
-                self.device_name = "default"
-            elif device_idx < len(microphone_names):
-                self.device_name = f"device {device_idx}: {microphone_names[device_idx]}"
-            else:
-                self.device_name = f"device {device_idx}"
-
-            print(f"Testing microphone: {self.device_name}")
-            mic = sr.Microphone(device_index=device_idx)
-
-            try:
-                mic.stream = None
-                with mic:
-                    """
-                    get_default_input_device_info
-                        get_default_input_device PyAudio_GetDefaultInputDevice
-                            Pa_GetDefaultInputDevice
-                                defaultInputDevice
-                        Pa_GetDefaultHostApi
-                            defaultHostApiIndex_
-                    """
-                    pass
-                print(f"Using microphone: {self.device_name}")
-                return mic
-            except Exception as e:
-                print(f"microphone {self.device_name} failed {e}")
-                logger.debug(traceback.format_exc())
-                mic = None
-                continue
-
-        return None
     def setup_pasimple_recording(self):
         """Setup pasimple audio recording stream"""
         self.pasimple_stream = pasimple.PaSimple(
