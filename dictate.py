@@ -30,7 +30,6 @@ import threading
 import time
 import tkinter as tk
 import traceback
-import warnings
 from io import BytesIO
 
 import Levenshtein
@@ -57,6 +56,8 @@ fifo_path = "/tmp/dictate_trigger"
 
 
 class DictationApp:
+    """Main dictation application that handles audio recording and speech recognition."""
+
     def __init__(self):
         self.config = {}
         try:
@@ -64,7 +65,6 @@ class DictationApp:
                 self.config = yaml.safe_load(f) or {}
         except Exception:
             logger.debug(traceback.format_exc())
-            pass
         self.recognizer_engine = self.config.get("general", {}).get("recognizer_engine", "google")
         self.status_window = None
         self.show_status_window("Starting", "lightblue")
@@ -122,7 +122,6 @@ class DictationApp:
                 print(f"Audio calibration failed: {e}")
         else:
             print("WARNING: No microphone available")
-
         self.hide_status_window()
 
         self.setup_pasimple_recording()
@@ -167,12 +166,12 @@ class DictationApp:
 
         results.sort(key=lambda x: x["dist"])
 
-        if results and results[0]['dist'] < 100:
+        if results and results[0]["dist"] < 100:
             print(f"Recommended: {results[0]['engine']}")
         else:
             print("\nCould not determine the best engine.")
 
-    def signal_handler(self, sig, frame):
+    def signal_handler(self, sig, frame):  # pylint: disable=unused-argument
         """Handle SIGINT gracefully."""
         print("\nCaught Ctrl+C, shutting down...")
         self.shutdown_flag = True
@@ -218,7 +217,6 @@ class DictationApp:
                 continue
 
         return None
-
     def setup_pasimple_recording(self):
         """Setup pasimple audio recording stream"""
         self.pasimple_stream = pasimple.PaSimple(
@@ -359,6 +357,7 @@ class DictationApp:
         return b"".join(recorded_audio_chunks)
 
     def stop_manual_recording(self):
+        """Stop the manual recording by setting the stop flag."""
         if not self.recording_active:
             return
 
@@ -405,7 +404,7 @@ class DictationApp:
         if threading.current_thread() is threading.main_thread():
             update_gui()
         else:
-            self.gui_queue.append(lambda: update_gui())
+            self.gui_queue.append(update_gui)
 
     def hide_status_window(self):
         """Hide the status window"""
@@ -418,7 +417,7 @@ class DictationApp:
         if threading.current_thread() is threading.main_thread():
             hide_gui()
         else:
-            self.gui_queue.append(lambda: hide_gui())
+            self.gui_queue.append(hide_gui)
 
     def start_manual_recording(self):
         """Start manual audio recording - records until stop command"""
@@ -504,10 +503,10 @@ class DictationApp:
 
             buf = io.BytesIO()
             with wave.open(buf, "wb") as f:
-                f.setnchannels(CHANNELS)
-                f.setsampwidth(SAMPLE_WIDTH)
-                f.setframerate(SAMPLE_RATE)
-                f.writeframes(data)
+                f.setnchannels(CHANNELS)  # pylint: disable=no-member
+                f.setsampwidth(SAMPLE_WIDTH)  # pylint: disable=no-member
+                f.setframerate(SAMPLE_RATE)  # pylint: disable=no-member
+                f.writeframes(data)  # pylint: disable=no-member
             buf.seek(0)
             return sr.AudioData(buf.getvalue(), SAMPLE_RATE, SAMPLE_WIDTH)
 
@@ -529,7 +528,7 @@ class DictationApp:
 
         def continuous_record_and_process():
             try:
-                print(f"🔴 Recording with {self.device_name}")
+                print("🎤 Recording")
                 while self.continuous_mode_active and not self.shutdown_flag:
                     # Record audio until silence is detected
                     data = self.record_audio(max_duration=60, stop_on_silence=True)
@@ -592,6 +591,7 @@ class DictationApp:
         self.show_status_window(f"Echo {status}", "lightblue")
 
     def input_command(self, fifo):
+        """Read and process commands from the FIFO pipe."""
         # Wait for data on the fifo with a timeout
         if not fifo:
             try:
@@ -600,9 +600,8 @@ class DictationApp:
             except OSError as e:
                 if e.errno == errno.ENXIO:  # No writer yet
                     time.sleep(0.1)
-                    return
-                else:  # Other OS error
-                    raise  # Other OS error
+                else:
+                    raise
 
         ready, _, _ = select.select([fifo], [], [], 0.5)
         if not ready:
