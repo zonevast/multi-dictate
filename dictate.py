@@ -37,6 +37,7 @@ import Levenshtein
 import pasimple
 import pyautogui
 import speech_recognition as sr
+import webrtcvad
 import yaml
 from gtts import gTTS
 from pydub import AudioSegment
@@ -47,7 +48,7 @@ SetLogLevel(-1)
 FORMAT = pasimple.PA_SAMPLE_S16LE
 SAMPLE_WIDTH = pasimple.format2width(FORMAT)
 CHANNELS = 1
-SAMPLE_RATE = 24000
+SAMPLE_RATE = 16000
 BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 params = None
@@ -68,6 +69,11 @@ class DictationApp:
         self.status_window = None
         self.show_status_window("Starting", "lightblue")
         self.recognizer = sr.Recognizer()
+        self.vad = webrtcvad.Vad()
+        self.vad.set_mode(
+            self.config.get("vad", {}).get("aggressiveness", 0)
+        )  # Set aggressiveness mode (0-3)
+
         vars(self.recognizer).update(self.config.get("Recognizer", {}))
 
         self.recognizer_engines = {
@@ -90,7 +96,6 @@ class DictationApp:
         self.pasimple_stream = None
         self.recording_active = False
         self.stop_recording_flag = False
-        self.recorded_audio_chunks = []
         self.continuous_mode_active = False
         self.shutdown_flag = False
         self._cleaned_up = False
@@ -285,36 +290,73 @@ class DictationApp:
         else:
             threading.Thread(target=speak_in_thread, daemon=True).start()
 
-    def record_audio(self, max_duration=60):
+    def record_audio(self, max_duration=60, stop_on_silence=False):
         """Record audio manually until stop command or timeout"""
         if not self.pasimple_stream:
             print("Failed to setup recording")
             return None
 
-        self.recorded_audio_chunks = []
         self.stop_recording_flag = False
 
         try:
-            return self._record_chunks(BYTES_PER_SEC // 10, max_duration * 10, max_duration)
+            return self._record_chunks(max_duration, stop_on_silence)
         except Exception as e:
             print(f"Recording failed: {e}")
             logger.debug(traceback.format_exc())
             return None
 
-    def _record_chunks(self, chunk_size, total_chunks, max_duration):
-        """Record audio chunks in a loop"""
+    def _record_chunks(self, max_duration, stop_on_silence=False):
+        """Record audio chunks using VAD"""
         logger.debug("")
-        for chunk_num in range(total_chunks):
+        chunk_duration_ms = 30
+        vad_chunk_size = int(SAMPLE_RATE * (chunk_duration_ms / 1000.0) * SAMPLE_WIDTH)
+
+        pause_threshold_ms = self.config.get("vad", {}).get("pause_threshold", 2.0) * 1000
+        initial_silence_grace_ms = (
+            self.config.get("vad", {}).get("initial_silence_grace", 2.0) * 1000
+        )
+        recorded_audio_chunks = []
+        silence = 0
+        speech_started = False
+
+        for chunk_num in range(int(max_duration * 1000 / chunk_duration_ms)):
             if self.stop_recording_flag or self.shutdown_flag:
                 break
 
-            if chunk_num % 10 == 0:
-                elapsed = chunk_num * 0.1
-                self.show_status_window(f"🎤 Recording... {elapsed:.0f}s", "lightcoral")
+            chunk = self.pasimple_stream.read(vad_chunk_size)
 
-            self.recorded_audio_chunks.append(self.pasimple_stream.read(chunk_size))
+            recorded_audio_chunks.append(chunk)
+            if stop_on_silence:
+                elapsed_ms = chunk_num * chunk_duration_ms
+                is_speech = self.vad.is_speech(chunk, SAMPLE_RATE)
 
-        return b"".join(self.recorded_audio_chunks)
+                if is_speech:
+                    speech_started = True
+                    silence = 0
+                else:
+                    if speech_started and elapsed_ms > initial_silence_grace_ms:
+                        silence += 1
+
+                # Only stop if we've detected speech before and now have silence
+                if speech_started and silence * chunk_duration_ms > pause_threshold_ms:
+                    logger.debug(
+                        f"Silence detected after {elapsed_ms/1000:.1f}s, recording stopped"
+                    )
+                    break
+
+                # Stop if no speech detected within timeout
+                no_speech_timeout_ms = (
+                    self.config.get("vad", {}).get("no_speech_timeout", 5.0) * 1000
+                )
+                if not speech_started and elapsed_ms > no_speech_timeout_ms:
+                    logger.debug(f"No speech detected after {elapsed_ms/1000:.1f}s, stopping")
+                    break
+
+            if chunk_num % (1000 // chunk_duration_ms) == 0:
+                elapsed = chunk_num * chunk_duration_ms / 1000
+                self.show_status_window(f"🎤 Listening... {elapsed:.0f}s", "lightcoral")
+
+        return b"".join(recorded_audio_chunks)
 
     def stop_manual_recording(self):
         if not self.recording_active:
@@ -447,13 +489,11 @@ class DictationApp:
         if continuous:
             if self.command == "stop":
                 print("Stopping")
-                self.stop_listening(wait_for_stop=False)
                 self.continuous_mode_active = False
                 self.hide_status_window()
             elif self.continuous_mode_active:
                 # Keep showing listening status in continuous mode
                 self.show_status_window("🎤 Listening...", "lightcoral")
-
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -480,32 +520,47 @@ class DictationApp:
         """Start continuous audio recording - records until silence/pause detected"""
         logger.debug("")
 
-        def recorded_cb(_, audio):
-            logger.debug("")
-            self.show_status_window("⏳ Processing...", "lightsalmon")
-            threading.Thread(
-                target=self._process_audio,
-                args=(audio, True),
-                daemon=True,
-            ).start()
-            # Return immediately to caller
+        if self.recording_active or self.continuous_mode_active:
+            print("Recording already active")
+            return
 
-        # start_recording
-        if not self.microphone:
-            print("Cannot record: No microphone available")
-            return
-        if self.microphone.stream:
-            # already recording
-            return
         self.continuous_mode_active = True
         self.show_status_window("🎤 Listening...", "lightcoral")
-        try:
-            self.stop_listening = self.recognizer.listen_in_background(self.microphone, recorded_cb)
-            print(f"🔴 Recording with {self.device_name}")
-        except Exception as e:
-            print(f"Failed to start background listening: {e}")
-            logger.debug(traceback.format_exc())
-            self.continuous_mode_active = False
+
+        def continuous_record_and_process():
+            try:
+                print(f"🔴 Recording with {self.device_name}")
+                while self.continuous_mode_active and not self.shutdown_flag:
+                    # Record audio until silence is detected
+                    data = self.record_audio(max_duration=60, stop_on_silence=True)
+                    if not data:
+                        print("No audio data recorded")
+                        continue
+
+                    # Debug: show audio length
+                    audio_duration = len(data) / BYTES_PER_SEC
+                    print(f"Recorded {audio_duration:.2f} seconds of audio")
+
+                    self.show_status_window("⏳ Processing...", "lightsalmon")
+
+                    audio = self._convert_raw_audio_to_sr_format(data)
+                    if not audio:
+                        logger.debug("Audio conversion failed")
+                        continue
+
+                    self._process_audio(audio, continuous=True)
+
+                    if self.command == "stop":
+                        break
+
+            except Exception as e:
+                print(f"Failed during continuous recording: {e}")
+                logger.debug(traceback.format_exc())
+            finally:
+                self.continuous_mode_active = False
+                self.hide_status_window()
+
+        threading.Thread(target=continuous_record_and_process, daemon=True).start()
 
     def _show_error(self, message):
         """Show error window"""
