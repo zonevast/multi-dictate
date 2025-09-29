@@ -28,7 +28,11 @@ import threading
 import time
 import tkinter as tk
 import traceback
+import warnings
 from io import BytesIO
+
+# Suppress deprecation warning from webrtcvad about pkg_resources
+warnings.filterwarnings("ignore", category=UserWarning, module="webrtcvad")
 
 import Levenshtein
 import pasimple
