@@ -112,7 +112,6 @@ class DictationApp:
         self.setup_pasimple_recording()
         self.tts_lock = threading.Lock()
 
-        print("Dictation app initialized.")
 
     def calibrate(self):
         """Calibrate voice recognition with all available engines."""
@@ -128,7 +127,6 @@ class DictationApp:
 
         print("Listening 🎤")
         audio = self._convert_raw_audio_to_sr_format(self.record_audio(duration))
-        self.hide_status_window()
         self.speak_text("Thank you.")
         if not audio:
             print("Calibration failed: Audio conversion error.")
@@ -261,6 +259,7 @@ class DictationApp:
         silence = 0
         speech_started = False
 
+        self.show_status_window(f"Listening 🎤", "lightcoral")
         for chunk_num in range(int(max_duration * 1000 / chunk_duration_ms)):
             if self.stop_recording_flag or self.shutdown_flag:
                 break
@@ -268,11 +267,10 @@ class DictationApp:
             chunk = self.pasimple_stream.read(vad_chunk_size)
 
             recorded_audio_chunks.append(chunk)
-            if stop_on_silence:
-                elapsed_ms = chunk_num * chunk_duration_ms
-                is_speech = self.vad.is_speech(chunk, SAMPLE_RATE)
+            elapsed_ms = chunk_num * chunk_duration_ms
 
-                if is_speech:
+            if stop_on_silence:
+                if self.vad.is_speech(chunk, SAMPLE_RATE):
                     speech_started = True
                     silence = 0
                 else:
@@ -294,10 +292,7 @@ class DictationApp:
                     logger.debug(f"No speech detected after {elapsed_ms/1000:.1f}s, stopping")
                     break
 
-            if chunk_num % (1000 // chunk_duration_ms) == 0:
-                elapsed = chunk_num * chunk_duration_ms / 1000
-                self.show_status_window(f"Listening 🎤 {elapsed:.0f}s", "lightcoral")
-
+        self.hide_status_window()
         return b"".join(recorded_audio_chunks)
 
     def stop_manual_recording(self):
@@ -370,7 +365,6 @@ class DictationApp:
             return
 
         self.recording_active = True
-        self.show_status_window("Listening 🎤 ", "lightcoral")
 
         def record_and_process():
             try:
@@ -433,10 +427,6 @@ class DictationApp:
             if self.command == "stop":
                 print("Stopping")
                 self.continuous_mode_active = False
-                self.hide_status_window()
-            elif self.continuous_mode_active:
-                # Keep showing listening status in continuous mode
-                self.show_status_window("Listening 🎤", "lightcoral")
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -468,7 +458,6 @@ class DictationApp:
             return
 
         self.continuous_mode_active = True
-        self.show_status_window("Listening 🎤 ", "lightcoral")
 
         def continuous_record_and_process():
             try:
@@ -501,7 +490,6 @@ class DictationApp:
                 logger.debug(traceback.format_exc())
             finally:
                 self.continuous_mode_active = False
-                self.hide_status_window()
 
         threading.Thread(target=continuous_record_and_process, daemon=True).start()
 
@@ -562,8 +550,6 @@ class DictationApp:
 
     def run(self):
         """Start the FIFO listener"""
-        print("Dictation app is running...")
-
         if os.path.exists(fifo_path):
             os.remove(fifo_path)
 
