@@ -380,7 +380,7 @@ class DictationApp:
                     self._show_error("Audio conversion failed")
                     return
 
-                self._process_audio(audio, continuous=False)
+                self.speak_text(self._process_audio(audio))
             finally:
                 self.recording_active = False
 
@@ -392,24 +392,15 @@ class DictationApp:
         result = engine["recognize"](audio, **config)
         return engine["parser"](result)
 
-    def _process_audio(self, audio, continuous=False):
+    def _process_audio(self, audio):
         """Process audio through speech recognition and handle results"""
         logger.debug("")
         text = None
         try:
             text = self._recognize(audio)
-            print(f"> {text}")
-            self.show_status_window(text, "lightgreen")
-
-            def hide_later():
-                logger.debug("")
-                time.sleep(3)
-                self.hide_status_window()
-
-            threading.Thread(target=hide_later, daemon=True).start()
+            logger.info(text)
+            # self.show_status_window(text, "lightgreen")
             pyautogui.typewrite(text + " ")
-            if not continuous:
-                self.speak_text(text)
         except sr.UnknownValueError:
             print("No speech detected")
             self._show_error("No speech detected")
@@ -419,14 +410,7 @@ class DictationApp:
         except Exception as e:
             print(f"❌ Recognition error: {e}")
             self._show_error("❌ Recognition error")
-        finally:
-            if continuous and not text:
-                self.command = "stop"
-
-        if continuous:
-            if self.command == "stop":
-                print("Stopping")
-                self.continuous_mode_active = False
+        return text
 
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
@@ -477,12 +461,12 @@ class DictationApp:
 
                     audio = self._convert_raw_audio_to_sr_format(data)
                     if not audio:
-                        logger.debug("Audio conversion failed")
-                        continue
+                        logger.error("Audio conversion failed")
+                        break
 
-                    self._process_audio(audio, continuous=True)
-
-                    if self.command == "stop":
+                    if not self._process_audio(audio):
+                        print("Stopping")
+                        self.continuous_mode_active = False
                         break
 
             except Exception as e:
