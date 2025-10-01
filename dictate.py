@@ -525,7 +525,7 @@ class DictationApp:
         line = fifo.readline().strip()
         if line:
             self.command = line
-            print(f" >>> {line}")
+            logger.info(line)
 
             if self.command in self.commands:
                 self.commands[self.command][0]()
