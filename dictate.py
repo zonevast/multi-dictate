@@ -112,7 +112,6 @@ class DictationApp:
         self.setup_pasimple_recording()
         self.tts_lock = threading.Lock()
 
-
     def calibrate(self):
         """Calibrate voice recognition with all available engines."""
         duration = self.config.get("calibrate", {}).get("duration", 20)
@@ -176,7 +175,7 @@ class DictationApp:
     def speak_text(self, text, sync=False):
         """Convert text to speech using gTTS and pasimple."""
         logger.debug(f"'{text}'")
-        if not text or not params.echo:
+        if not text:
             return
 
         def speak_in_thread():
@@ -377,12 +376,17 @@ class DictationApp:
 
                 audio = self._convert_raw_audio_to_sr_format(data)
                 if not audio:
+                    self.hide_status_window()
                     self._show_error("Audio conversion failed")
                     return
 
-                self.speak_text(self._process_audio(audio))
+                t = self._process_audio(audio)
+                self.hide_status_window()
+                if params.echo:
+                    self.speak_text(t)
             finally:
                 self.recording_active = False
+                self.hide_status_window()
 
         threading.Thread(target=record_and_process, daemon=True).start()
 
