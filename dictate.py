@@ -400,7 +400,8 @@ class DictationApp:
             text = self._recognize(audio)
             logger.info(text)
             # self.show_status_window(text, "lightgreen")
-            pyautogui.typewrite(text + " ")
+            t = self.config.get("general", {}).get("typewrite_interval", 0.05)
+            pyautogui.typewrite(text + " ", interval=t)
         except sr.UnknownValueError:
             print("No speech detected")
             self._show_error("No speech detected")

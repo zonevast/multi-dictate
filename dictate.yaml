@@ -1,5 +1,6 @@
 general:
   recognizer_engine: google
+  typewrite_interval: 0.05
 Recognizer:
   pause_threshold: 1
 recognize_google:
