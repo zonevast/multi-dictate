@@ -58,9 +58,6 @@ def build_layout_mappings(layouts):
         logger.error("US layout missing 'keys' field")
         return mappings
 
-    shifted = '~{}:"<>?|'
-    special = "`[];',./\\"
-
     for layout_name, layout_data in layouts.items():
         if layout_name == "us":
             continue
@@ -73,16 +70,11 @@ def build_layout_mappings(layouts):
             for layout_row, us_row in zip(layout_rows, us_rows):
                 for layout_char, us_char in zip(layout_row, us_row):
                     mapping[layout_char] = us_char
-
-            # Add uppercase mappings for letters (skip first row - shift-digits)
-            for j in range(1, 4):
-                for layout_char, us_char in zip(layout_rows[j], us_rows[j]):
-                    if layout_char.upper() not in mapping:
-                        mapping[layout_char.upper()] = (
-                            shifted[special.index(us_char)]
-                            if us_char in special
-                            else us_char.upper()
-                        )
+                    # Add uppercase mapping if the character has a different uppercase form
+                    upper_layout = layout_char.upper()
+                    upper_us = us_char.upper()
+                    if upper_layout != layout_char and upper_us != us_char:
+                        mapping[upper_layout] = upper_us
 
             mappings[layout_name] = mapping
             logger.info(f"Built {len(mapping)} character mappings for layout '{layout_name}'")
