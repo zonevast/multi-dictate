@@ -1,5 +1,6 @@
 #!/bin/bash
-t=dictate.py
+
+t="dictate.py kbd_utils.py"
 
 # Format imports
 isort --check-only --quiet $t || isort $t
@@ -14,3 +15,5 @@ flake8 --max-line-length=100 $t
 pylint $t
 
 sort requirements.txt -o requirements.txt
+
+ctags $t

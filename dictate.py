@@ -46,6 +46,8 @@ from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
 
+from kbd_utils import build_layout_mappings, get_current_keyboard_layout
+
 SetLogLevel(-1)
 
 FORMAT = pasimple.PA_SAMPLE_S16LE
@@ -74,8 +76,12 @@ class DictationApp:
         self.status_window = None
         self.recognizer = sr.Recognizer()
         self.vad = webrtcvad.Vad()
+        self.curr_layout = None
         self.vad.set_mode(self.cfg.vad.aggressiveness or 0)  # Set aggressiveness mode (0-3)
         vars(self.recognizer).update(self.cfg.Recognizer)
+
+        # Pre-build all layout mappings
+        self.layout_mappings = build_layout_mappings(self.cfg.layouts)
 
         self.recognizer_engines = {
             "google": {
@@ -184,7 +190,13 @@ class DictationApp:
 
                     # Get gTTS config and override language if auto-detection is enabled
                     gtts_config = (self.cfg.gTTS or {}).copy()
+                    if gtts_config.get("lang", "auto").lower() == "auto":
+                        lang_config = self.cfg.layouts[self.curr_layout].languages
+                        gtts_config["lang"] = lang_config.tts or "en"
+                        logger.debug(f"Using TTS language: {lang_config['tts']}")
+
                     # Generate audio with gTTS
+                    logger.debug(gtts_config)
                     tts = gTTS(text, **gtts_config)
                     audio_buffer = BytesIO()
                     tts.write_to_fp(audio_buffer)
@@ -240,12 +252,30 @@ class DictationApp:
 
         self.stop_recording_flag = False
 
+        self.curr_layout = get_current_keyboard_layout()
+        self.cur_lang = (self.cfg[f"recognize_{self.recognizer_engine}"].language or "auto").lower()
+        if self.cur_lang == "auto":
+            self.cur_lang = self.cfg.layouts[self.curr_layout].languages.stt or "en-US"
+        if not self.layout_mappings.get(self.curr_layout):
+            logger.error(f"No keyboard mapping for '{self.curr_layout}'")
+
+        # see _recognize
+        if (self.cfg.recognize_google.language or "auto").lower() == "auto":
+            l = self.cur_lang.split("-")[0].upper()
+            lang_code = f"{l} " if l != "EN" else ""
+        else:
+            lang_code = ""
+
+        self.show_status_window(f"Listening {lang_code}🎤", "lightcoral")
+
         try:
             return self._record_chunks(max_duration, stop_on_silence)
         except Exception as e:
             print(f"Recording failed: {e}")
             logger.debug(traceback.format_exc())
             return None
+        finally:
+            self.hide_status_window()
 
     def _record_chunks(self, max_duration, stop_on_silence=False):
         """Record audio chunks using VAD"""
@@ -259,7 +289,6 @@ class DictationApp:
         silence = 0
         speech_started = False
 
-        self.show_status_window(f"Listening 🎤", "lightcoral")
         for chunk_num in range(int(max_duration * 1000 / chunk_duration_ms)):
             if self.stop_recording_flag or self.shutdown_flag:
                 break
@@ -290,7 +319,6 @@ class DictationApp:
                     logger.debug(f"No speech detected after {elapsed_ms/1000:.1f}s, stopping")
                     break
 
-        self.hide_status_window()
         return b"".join(recorded_audio_chunks)
 
     def stop_manual_recording(self):
@@ -392,6 +420,10 @@ class DictationApp:
     def _recognize(self, audio):
         engine = self.recognizer_engines.get(self.recognizer_engine)
         config = dict(self.cfg[f"recognize_{self.recognizer_engine}"] or {})
+
+        config["language"] = self.cur_lang
+        logger.debug(f"Using recognition language: '{self.cur_lang}' for {self.curr_layout}")
+
         result = engine["recognize"](audio, **config)
         return engine["parser"](result)
 
@@ -402,7 +434,10 @@ class DictationApp:
         try:
             text = self._recognize(audio)
             logger.info(text)
-            # self.show_status_window(text, "lightgreen")
+
+            # Convert the recognized text to physical keys for the current layout
+            mapping = self.layout_mappings.get(self.curr_layout)
+            to_type = "".join(mapping.get(c, c) for c in text) if mapping else text
             t = self.cfg.general.typewrite_interval or 0.05
             pyautogui.typewrite(to_type + " ", interval=t)
         except sr.UnknownValueError:

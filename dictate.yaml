@@ -4,12 +4,40 @@ general:
 Recognizer:
   pause_threshold: 1
 recognize_google:
-  language: en
+  language: auto  # Use 'auto' to detect language from keyboard layout
 gTTS:
-  lang: en
+  lang: auto  # Use 'auto' to detect language from keyboard layout
 calibrate:
   duration: 30
   asr_calibration_text: |
     The quick brown fox jumps over the lazy dog.
     The dog thinks hard, hanging his head and humming a song.
     The fox judges each choice with vision, chewing cool food on the lawn.
+layouts:
+  us:
+    keys:
+      - '`!@#$%^&*()_+'
+      - qwertyuiop[]
+      - asdfghjkl;'"\
+      - zxcvbnm,./?
+    languages:
+      stt: en-US
+      tts: en
+  ru:
+    keys:
+      - 'ё!"№;%:?*()_+'
+      - йцукенгшщзхъ
+      - фывапролджэЭ
+      - ячсмитьбю.,
+    languages:
+      stt: ru-RU
+      tts: ru
+  il:
+    keys:
+      - '`!@#$%^&*)(_+'
+      - /'קראטוןםפ][
+      - שדגכעיחלךף,"
+      - זסבהנמצתץ.
+    languages:
+      stt: he-IL
+      tts: iw
