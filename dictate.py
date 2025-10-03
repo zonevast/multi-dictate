@@ -31,6 +31,8 @@ import traceback
 import warnings
 from io import BytesIO
 
+from box import Box
+
 # Suppress deprecation warning from webrtcvad about pkg_resources
 warnings.filterwarnings("ignore", category=UserWarning, module="webrtcvad")
 
@@ -61,21 +63,19 @@ class DictationApp:
     """Main dictation application that handles audio recording and speech recognition."""
 
     def __init__(self):
-        self.config = {}
+        y = {}
         try:
             with open("dictate.yaml", "r", encoding="utf-8") as f:
-                self.config = yaml.safe_load(f) or {}
+                y = yaml.safe_load(f) or {}
         except Exception:
             logger.debug(traceback.format_exc())
-        self.recognizer_engine = self.config.get("general", {}).get("recognizer_engine", "google")
+        self.cfg = Box(y, default_box=True)
+        self.recognizer_engine = self.cfg.general.recognizer_engine or "google"
         self.status_window = None
         self.recognizer = sr.Recognizer()
         self.vad = webrtcvad.Vad()
-        self.vad.set_mode(
-            self.config.get("vad", {}).get("aggressiveness", 0)
-        )  # Set aggressiveness mode (0-3)
-
-        vars(self.recognizer).update(self.config.get("Recognizer", {}))
+        self.vad.set_mode(self.cfg.vad.aggressiveness or 0)  # Set aggressiveness mode (0-3)
+        vars(self.recognizer).update(self.cfg.Recognizer)
 
         self.recognizer_engines = {
             "google": {
@@ -114,11 +114,11 @@ class DictationApp:
 
     def calibrate(self):
         """Calibrate voice recognition with all available engines."""
-        duration = self.config.get("calibrate", {}).get("duration", 20)
+        duration = self.cfg.calibrate.duration or 20
         intro = f"Say this text for calibration of voice recognition during {duration} seconds:"
-        orig = self.config.get("calibrate", {}).get(
-            "asr_calibration_text",
-            "This quick voice checks sharp sounds, tests warm tone, and sings with vision.",
+        orig = (
+            self.cfg.calibrate.asr_calibration_text
+            or "This quick voice checks sharp sounds, tests warm tone, and sings with vision."
         )
         print("Calibration")
         print(f" {intro}\n\n\u001b[1m{orig}\u001b[0m")
@@ -136,7 +136,7 @@ class DictationApp:
         for engine_name, engine_details in self.recognizer_engines.items():
             print(f"  {engine_name}")
             try:
-                config = self.config.get(f"recognize_{engine_name}", {})
+                config = dict(self.cfg[f"recognize_{engine_name}"] or {})
                 user = engine_details["parser"](engine_details["recognize"](audio, **config))
                 dist = Levenshtein.distance(re.sub(r"[^\w\s]", "", orig).lower(), user)
                 results.append({"engine": engine_name, "text": user, "dist": dist})
@@ -181,8 +181,11 @@ class DictationApp:
         def speak_in_thread():
             with self.tts_lock:
                 try:
+
+                    # Get gTTS config and override language if auto-detection is enabled
+                    gtts_config = (self.cfg.gTTS or {}).copy()
                     # Generate audio with gTTS
-                    tts = gTTS(text, **self.config.get("gTTS", {}))
+                    tts = gTTS(text, **gtts_config)
                     audio_buffer = BytesIO()
                     tts.write_to_fp(audio_buffer)
                     audio_buffer.seek(0)
@@ -250,10 +253,8 @@ class DictationApp:
         chunk_duration_ms = 30
         vad_chunk_size = int(SAMPLE_RATE * (chunk_duration_ms / 1000.0) * SAMPLE_WIDTH)
 
-        pause_threshold_ms = self.config.get("vad", {}).get("pause_threshold", 2.0) * 1000
-        initial_silence_grace_ms = (
-            self.config.get("vad", {}).get("initial_silence_grace", 2.0) * 1000
-        )
+        pause_threshold_ms = (self.cfg.vad.pause_threshold or 2.0) * 1000
+        initial_silence_grace_ms = (self.cfg.vad.initial_silence_grace or 2.0) * 1000
         recorded_audio_chunks = []
         silence = 0
         speech_started = False
@@ -284,9 +285,7 @@ class DictationApp:
                     break
 
                 # Stop if no speech detected within timeout
-                no_speech_timeout_ms = (
-                    self.config.get("vad", {}).get("no_speech_timeout", 5.0) * 1000
-                )
+                no_speech_timeout_ms = (self.cfg.vad.no_speech_timeout or 5.0) * 1000
                 if not speech_started and elapsed_ms > no_speech_timeout_ms:
                     logger.debug(f"No speech detected after {elapsed_ms/1000:.1f}s, stopping")
                     break
@@ -392,7 +391,7 @@ class DictationApp:
 
     def _recognize(self, audio):
         engine = self.recognizer_engines.get(self.recognizer_engine)
-        config = self.config.get(f"recognize_{self.recognizer_engine}", {})
+        config = dict(self.cfg[f"recognize_{self.recognizer_engine}"] or {})
         result = engine["recognize"](audio, **config)
         return engine["parser"](result)
 
@@ -404,8 +403,8 @@ class DictationApp:
             text = self._recognize(audio)
             logger.info(text)
             # self.show_status_window(text, "lightgreen")
-            t = self.config.get("general", {}).get("typewrite_interval", 0.05)
-            pyautogui.typewrite(text + " ", interval=t)
+            t = self.cfg.general.typewrite_interval or 0.05
+            pyautogui.typewrite(to_type + " ", interval=t)
         except sr.UnknownValueError:
             print("No speech detected")
             self._show_error("No speech detected")

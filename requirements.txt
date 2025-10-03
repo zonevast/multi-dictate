@@ -2,6 +2,7 @@ pyaudio==0.2.11
 pyautogui==0.9.54
 pydub
 pynput==1.7.6
+python-box
 python-Levenshtein==0.25.1
 SpeechRecognition==3.10.0
 vosk
