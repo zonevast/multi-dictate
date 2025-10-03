@@ -17,9 +17,9 @@ layouts:
   us:
     keys:
       - '`1234567890-='
-      - qwertyuiop[]
-      - asdfghjkl;'"\
-      - zxcvbnm,./?
+      - qwertyuiop[]{}
+      - asdfghjkl;'"\:
+      - zxcvbnm,./?>~
     languages:
       stt: en-US
       tts: en
@@ -35,9 +35,9 @@ layouts:
   ru:
     keys:
       - 'ё1234567890-='
-      - йцукенгшщзхъ
-      - фывапролджэЭ
-      - ячсмитьбю.,
+      - йцукенгшщзхъХЪ
+      - фывапролджэЭЖ
+      - ячсмитьбю.,ЮЁ
     languages:
       stt: ru-RU
       tts: ru
