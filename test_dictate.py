@@ -57,8 +57,8 @@ def send_cmd(cmd):
     os.close(fd)
 
 
-def play_audio(text):
-    os.system(f"gtts-cli '{text}' | play -q -v 0.1 -t mp3 -")
+def play_audio(text, lang='en'):
+    os.system(f"gtts-cli '{text}' -l {lang} | play -q -v 0.1 -t mp3 -")
 
 
 def test_typewrite(sample):
@@ -69,10 +69,10 @@ def test_typewrite(sample):
     check_result(sample, input())
 
 
-def test_dictate(sample):
+def test_dictate(sample, lang='en'):
     send_cmd("record")
     time.sleep(1)
-    play_audio(sample)
+    play_audio(sample, lang)
     time.sleep(2.5)
     send_cmd("stop")
     time.sleep(2)
@@ -87,7 +87,7 @@ if kl not in ['us', 'de']:
     print(kl)
     for r in cfg.layouts[kl]["keys"].split():
         test_typewrite(r)
-test_dictate("English")
+test_dictate(cfg.layouts[kl]["test"], cfg.layouts[kl]["languages"]["tts"])
 dictate_proc.terminate()
 dictate_proc.wait()
 

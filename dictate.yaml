@@ -23,6 +23,7 @@ layouts:
     languages:
       stt: en-US
       tts: en
+    test: Hello
   de:
     keys: |
       ^1234567890ß´
@@ -32,6 +33,7 @@ layouts:
     languages:
       stt: de-DE
       tts: de
+    test: Straße Yoga Zucker
   ru:
     keys: |
       ё1234567890-=
@@ -41,6 +43,7 @@ layouts:
     languages:
       stt: ru-RU
       tts: ru
+    test: эхо съём
   il:
     keys: |
       ;1234567890-=
@@ -50,3 +53,4 @@ layouts:
     languages:
       stt: he-IL
       tts: iw
+    test: שלום
