@@ -1,6 +1,6 @@
 #!/bin/bash
 
-t="dictate.py kbd_utils.py"
+t="dictate.py kbd_utils.py test_dictate.py"
 
 # Format imports
 isort --check-only --quiet $t || isort $t
