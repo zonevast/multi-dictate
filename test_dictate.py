@@ -15,6 +15,7 @@ FIFO_PATH = "/tmp/dictate_trigger"
 dictate_proc = None
 cfg = None
 layout_mappings = None
+errors = 0
 
 
 def init():
@@ -46,7 +47,8 @@ def check_result(expected, result, case_sensitive=True):
     else:
         print(f"Expected:  '{expected}' ", end="")
         print(f"fail, got: '{result}'")
-        sys.exit(1)
+        global errors
+        errors += 1
 
 
 def send_cmd(cmd):
@@ -88,3 +90,6 @@ if kl not in ['us', 'de']:
 test_dictate("English")
 dictate_proc.terminate()
 dictate_proc.wait()
+
+print(f"Errors: {errors}")
+sys.exit(errors)
