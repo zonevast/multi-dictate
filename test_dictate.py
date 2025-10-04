@@ -6,13 +6,19 @@ import sys
 import time
 
 import pyautogui
+import yaml
+from box import Box
+
+from kbd_utils import build_layout_mappings, get_current_keyboard_layout
 
 FIFO_PATH = "/tmp/dictate_trigger"
 dictate_proc = None
+cfg = None
+layout_mappings = None
 
 
 def init():
-    global dictate_proc
+    global dictate_proc, cfg, layout_mappings
     dictate_proc = subprocess.Popen(
         ["python3", "dictate.py", "--no-echo"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
@@ -23,6 +29,14 @@ def init():
     else:
         dictate_proc.terminate()
         sys.exit(1)
+    y = {}
+    try:
+        with open("dictate.yaml", "r", encoding="utf-8") as f:
+            y = yaml.safe_load(f) or {}
+    except Exception:
+        pass
+    cfg = Box(y, default_box=True)
+    layout_mappings = build_layout_mappings(cfg.layouts)
     time.sleep(1)
 
 
@@ -45,6 +59,14 @@ def play_audio(text):
     os.system(f"gtts-cli '{text}' | play -q -v 0.1 -t mp3 -")
 
 
+def test_typewrite(sample):
+    mapping = layout_mappings.get(kl)
+    to_type = "".join(mapping.get(c, c) for c in sample) if mapping else sample
+    pyautogui.typewrite(to_type + "\n")
+    time.sleep(0.5)
+    check_result(sample, input())
+
+
 def test_dictate(sample):
     send_cmd("record")
     time.sleep(1)
@@ -56,11 +78,10 @@ def test_dictate(sample):
     check_result(sample, input())
 
 
-time.sleep(0.5)
-TYPEWRITE_TEST = "typewrite_test"
-pyautogui.typewrite(TYPEWRITE_TEST + "\n")
-check_result(TYPEWRITE_TEST, input())
 init()
+time.sleep(0.5)
+kl = get_current_keyboard_layout()
+test_typewrite(cfg.layouts[kl]["keys"][0])
 test_dictate("English")
 dictate_proc.terminate()
 dictate_proc.wait()
