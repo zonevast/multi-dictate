@@ -62,28 +62,20 @@ def build_layout_mappings(layouts):
         if layout_name == "us":
             continue
 
-        try:
-            layout_rows = layout_data["keys"]
-            mapping = {}
+        layout_rows = layout_data["keys"]
+        mapping = {}
 
-            # Map all characters to their US QWERTY equivalents
-            for layout_row, us_row in zip(layout_rows, us_rows):
-                for layout_char, us_char in zip(layout_row, us_row):
-                    mapping[layout_char] = us_char
-                    # Add uppercase mapping if the character has a different uppercase form
-                    upper_layout = layout_char.upper()
-                    upper_us = us_char.upper()
-                    if upper_layout != layout_char and upper_us != us_char:
-                        mapping[upper_layout] = upper_us
+        # Map all characters to their US QWERTY equivalents
+        for layout_row, us_row in zip(layout_rows, us_rows):
+            for layout_char, us_char in zip(layout_row, us_row):
+                mapping[layout_char] = us_char
+                # Add uppercase mapping if the character has a different uppercase form
+                upper_layout = layout_char.upper()
+                upper_us = us_char.upper()
+                if upper_layout != layout_char and upper_us != us_char:
+                    mapping[upper_layout] = upper_us
 
-            mappings[layout_name] = mapping
-            logger.info(f"Built {len(mapping)} character mappings for layout '{layout_name}'")
-
-        except KeyError as e:
-            logger.error(f"Layout '{layout_name}' missing required field: {e}")
-        except IndexError as e:
-            logger.error(f"Layout '{layout_name}' has invalid structure: {e}")
-        except Exception as e:
-            logger.error(f"Failed to build mapping for layout '{layout_name}': {e}")
+        mappings[layout_name] = mapping
+        logger.info(f"Built {len(mapping)} character mappings for layout '{layout_name}'")
 
     return mappings
