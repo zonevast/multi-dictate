@@ -53,7 +53,8 @@ def build_layout_mappings(layouts):
         return mappings
 
     try:
-        us_rows = layouts["us"]["keys"]
+        us_keys = layouts["us"]["keys"]
+        us_rows = us_keys.strip().split()
     except KeyError:
         logger.error("US layout missing 'keys' field")
         return mappings
@@ -62,7 +63,8 @@ def build_layout_mappings(layouts):
         if layout_name == "us":
             continue
 
-        layout_rows = layout_data["keys"]
+        layout_keys = layout_data["keys"]
+        layout_rows = layout_keys.strip().split()
         mapping = {}
 
         # Map all characters to their US QWERTY equivalents

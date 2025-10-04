@@ -15,39 +15,38 @@ calibrate:
     The fox judges each choice with vision, chewing cool food on the lawn.
 layouts:
   us:
-    keys:
-      - '`1234567890-='
-      - 'qwertyuiop[]{}'
-      - |
-        asdfghjkl;'"\:
-      - 'zxcvbnm,./?>~'
+    keys: |
+      `1234567890-=
+      qwertyuiop[]{}
+      asdfghjkl;'":
+      zxcvbnm,./?>~
     languages:
       stt: en-US
       tts: en
   de:
-    keys:
-      - '^1234567890ß´'
-      - qwertzuiopü+
-      - asdfghjklöä
-      - yxcvbnm,.-
+    keys: |
+      ^1234567890ß´
+      qwertzuiopü+
+      asdfghjklöä
+      yxcvbnm,.-
     languages:
       stt: de-DE
       tts: de
   ru:
-    keys:
-      - 'ё1234567890-='
-      - йцукенгшщзхъХЪ
-      - фывапролджэЭЖ
-      - ячсмитьбю.,ЮЁ
+    keys: |
+      ё1234567890-=
+      йцукенгшщзхъХЪ
+      фывапролджэЭЖ
+      ячсмитьбю.,ЮЁ
     languages:
       stt: ru-RU
       tts: ru
   il:
-    keys:
-      - ';1234567890-='
-      - /'קראטוןםפ][
-      - שדגכעיחלךף,"
-      - זסבהנמצתץ.
+    keys: |
+      ;1234567890-=
+      /'קראטוןםפ][
+      שדגכעיחלךף,"
+      זסבהנמצתץ.
     languages:
       stt: he-IL
       tts: iw

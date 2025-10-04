@@ -81,7 +81,10 @@ def test_dictate(sample):
 init()
 time.sleep(0.5)
 kl = get_current_keyboard_layout()
-test_typewrite(cfg.layouts[kl]["keys"][0])
+if kl not in ['us', 'de']:
+    print(kl)
+    for r in cfg.layouts[kl]["keys"].split():
+        test_typewrite(r)
 test_dictate("English")
 dictate_proc.terminate()
 dictate_proc.wait()
