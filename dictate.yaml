@@ -24,6 +24,16 @@ layouts:
       stt: en-US
       tts: en
     test: Hello
+  es:
+    keys: |
+      º1234567890'¡
+      qwertyuiop`+
+      asdfghjklñ´ç
+      zxcvbnm,.-
+    languages:
+      stt: es-ES
+      tts: es
+    test: sueño
   de:
     keys: |
       ^1234567890ß´
