@@ -31,17 +31,15 @@ import traceback
 import warnings
 from io import BytesIO
 
-from box import Box
-
-# Suppress deprecation warning from webrtcvad about pkg_resources
-warnings.filterwarnings("ignore", category=UserWarning, module="webrtcvad")
-
 import Levenshtein
 import pasimple
 import pyautogui
 import speech_recognition as sr
+
+warnings.filterwarnings("ignore", category=UserWarning, module="webrtcvad")
 import webrtcvad
 import yaml
+from box import Box
 from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
@@ -259,12 +257,12 @@ class DictationApp:
 
         # see _recognize
         if (self.cfg.recognize_google.language or "auto").lower() == "auto":
-            l = self.cur_lang.split("-")[0].upper()
-            lang_code = f"{l} " if l != "EN" else ""
+            lc = self.cur_lang.split("-")[0].upper()
+            lc2 = f"{lc} " if lc != "EN" else ""
         else:
-            lang_code = ""
+            lc2 = ""
 
-        self.show_status_window(f"Listening {lang_code}🎤", "lightcoral")
+        self.show_status_window(f"Listening {lc2}🎤", "lightcoral")
 
         try:
             return self._record_chunks(max_duration, stop_on_silence)
@@ -307,14 +305,14 @@ class DictationApp:
                 # Only stop if we've detected speech before and now have silence
                 if speech_started and silence * chunk_duration_ms > pause_threshold_ms:
                     logger.debug(
-                        f"Silence detected after {elapsed_ms/1000:.1f}s, recording stopped"
+                        f"Silence detected after {elapsed_ms / 1000:.1f}s, recording stopped"
                     )
                     break
 
                 # Stop if no speech detected within timeout
                 no_speech_timeout_ms = (self.cfg.vad.no_speech_timeout or 5.0) * 1000
                 if not speech_started and elapsed_ms > no_speech_timeout_ms:
-                    logger.debug(f"No speech detected after {elapsed_ms/1000:.1f}s, stopping")
+                    logger.debug(f"No speech detected after {elapsed_ms / 1000:.1f}s, stopping")
                     break
 
         return b"".join(recorded_audio_chunks)
