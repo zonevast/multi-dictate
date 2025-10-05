@@ -34,6 +34,16 @@ layouts:
       stt: es-ES
       tts: es
     test: sueño
+  fr:
+    keys: |
+      ²&é"'(-è_çà)=
+      azertyuiop^$
+      qsdfghjklmù*
+      wxcvbn,;:!
+    languages:
+      stt: fr-FR
+      tts: fr
+    test: Français
   de:
     keys: |
       ^1234567890ß´
