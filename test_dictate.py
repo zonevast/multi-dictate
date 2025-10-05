@@ -9,17 +9,16 @@ import pyautogui
 import yaml
 from box import Box
 
-from kbd_utils import build_layout_mappings, get_current_keyboard_layout
+from kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
 
 FIFO_PATH = "/tmp/dictate_trigger"
 dictate_proc = None
 cfg = None
-layout_mappings = None
 errors = 0
 
 
 def init():
-    global dictate_proc, cfg, layout_mappings
+    global dictate_proc, cfg
     dictate_proc = subprocess.Popen(
         ["python3", "dictate.py", "--no-echo"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
@@ -37,7 +36,6 @@ def init():
     except Exception:
         pass
     cfg = Box(y, default_box=True)
-    layout_mappings = build_layout_mappings(cfg.layouts)
     time.sleep(1)
 
 
@@ -62,8 +60,7 @@ def play_audio(text, lang="en"):
 
 
 def test_typewrite(sample):
-    mapping = layout_mappings.get(kl)
-    to_type = "".join(mapping.get(c, c) for c in sample) if mapping else sample
+    to_type = for_typewrite(sample, kl)
     pyautogui.typewrite(to_type + "\n")
     time.sleep(0.5)
     check_result(sample, input())
@@ -83,11 +80,34 @@ def test_dictate(sample, lang="en"):
 init()
 time.sleep(0.5)
 kl = get_current_keyboard_layout()
-if kl not in ["us", "de"]:
-    print(kl)
-    for r in cfg.layouts[kl]["keys"].split():
-        test_typewrite(r)
-test_dictate(cfg.layouts[kl]["test"], cfg.layouts[kl]["languages"]["tts"])
+print(f"Current keyboard layout: {kl}")
+
+# Test typewrite with some sample text
+test_samples = {
+    "us": ["Hello", "Test"],
+    "de": ["Hallo", "Straße"],
+    "ru": ["Привет", "эхо"],
+    "es": ["Hola", "niño"],
+    "fr": ["Bonjour", "café"],
+    "it": ["Ciao", "città"],
+}
+
+lang_code = kbd_cfg.layouts[kl].languages.tts or kl
+
+# Test typewrite
+if kl in test_samples:
+    print("\nTesting typewrite:")
+    for sample in test_samples[kl]:
+        test_typewrite(sample)
+else:
+    print("\nTesting typewrite with default:")
+    test_typewrite("Test")
+
+# Test dictation with a simple phrase
+print("\nTesting dictation:")
+test_phrase = test_samples.get(kl, ["Hello"])[0]
+test_dictate(test_phrase, lang_code)
+
 dictate_proc.terminate()
 dictate_proc.wait()
 

@@ -46,7 +46,7 @@ from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
 
-from kbd_utils import build_layout_mappings, get_current_keyboard_layout
+from kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
 
 SetLogLevel(-1)
 
@@ -79,9 +79,6 @@ class DictationApp:
         self.curr_layout = None
         self.vad.set_mode(self.cfg.vad.aggressiveness or 0)  # Set aggressiveness mode (0-3)
         vars(self.recognizer).update(self.cfg.Recognizer)
-
-        # Pre-build all layout mappings
-        self.layout_mappings = build_layout_mappings(self.cfg.layouts)
 
         self.recognizer_engines = {
             "google": {
@@ -192,7 +189,7 @@ class DictationApp:
                     gtts_config = (self.cfg.gTTS or {}).copy()
                     if gtts_config.get("lang", "auto").lower() == "auto":
                         gtts_config["lang"] = (
-                            self.cfg.layouts[self.curr_layout].languages.tts or self.curr_layout
+                            kbd_cfg.layouts[self.curr_layout].languages.tts or self.curr_layout
                         )
                         logger.debug(f"Using TTS language: {gtts_config['lang']}")
 
@@ -257,11 +254,9 @@ class DictationApp:
         self.cur_lang = (self.cfg[f"recognize_{self.recognizer_engine}"].language or "auto").lower()
         if self.cur_lang == "auto":
             self.cur_lang = (
-                self.cfg.layouts[self.curr_layout].languages.stt
+                kbd_cfg.layouts[self.curr_layout].languages.stt
                 or f"{self.curr_layout}-{self.curr_layout.upper()}"
             )
-        if not self.layout_mappings.get(self.curr_layout):
-            logger.error(f"No keyboard mapping for '{self.curr_layout}'")
 
         # see _recognize
         if (self.cfg.recognize_google.language or "auto").lower() == "auto":
@@ -440,8 +435,7 @@ class DictationApp:
             logger.info(text)
 
             # Convert the recognized text to physical keys for the current layout
-            mapping = self.layout_mappings.get(self.curr_layout)
-            to_type = "".join(mapping.get(c, c) for c in text) if mapping else text
+            to_type = for_typewrite(text, self.curr_layout)
             t = self.cfg.general.typewrite_interval or 0.05
             pyautogui.typewrite(to_type + " ", interval=t)
         except sr.UnknownValueError:

@@ -1,0 +1,501 @@
+layouts:
+  # English variants
+  us:
+    languages:
+      stt: en-US
+      tts: en
+  gb:
+    languages:
+      stt: en-GB
+      tts: en
+  uk:
+    languages:
+      stt: en-GB
+      tts: en
+  au:
+    languages:
+      stt: en-AU
+      tts: en
+  ca:
+    languages:
+      stt: en-CA
+      tts: en
+  ie:
+    languages:
+      stt: en-IE
+      tts: en
+  nz:
+    languages:
+      stt: en-NZ
+      tts: en
+  za:
+    languages:
+      stt: en-ZA
+      tts: en
+  # Portuguese variants
+  pt:
+    languages:
+      stt: pt-PT
+      tts: pt
+  br:
+    languages:
+      stt: pt-BR
+      tts: pt
+  # European languages
+  gr:
+    languages:
+      stt: el-GR
+      tts: el
+  cz:
+    languages:
+      stt: cs-CZ
+      tts: cs
+  dk:
+    languages:
+      stt: da-DK
+      tts: da
+  se:
+    languages:
+      stt: sv-SE
+      tts: sv
+  no:
+    languages:
+      stt: nb-NO
+      tts: no
+  ua:
+    languages:
+      stt: uk-UA
+      tts: uk
+  by:
+    languages:
+      stt: be-BY
+      tts: be
+  # Far East languages
+  cn:
+    languages:
+      stt: zh-CN
+      tts: zh
+  tw:
+    languages:
+      stt: zh-TW
+      tts: zh-TW
+  jp:
+    languages:
+      stt: ja-JP
+      tts: ja
+  kr:
+    languages:
+      stt: ko-KR
+      tts: ko
+  # Semitic
+  eg:
+    languages:
+      stt: ar-EG
+      tts: ar
+  sa:
+    languages:
+      stt: ar-SA
+      tts: ar
+  ae:
+    languages:
+      stt: ar-AE
+      tts: ar
+  ma:
+    languages:
+      stt: ar-MA
+      tts: ar
+  il:
+    languages:
+      stt: he-IL
+      tts: iw
+
+# XKB keycode to physical position mappings (row, col)
+keycode_positions:
+  # Number row
+  TLDE: [0, 0]   # ` ~
+  AE01: [0, 1]   # 1 !
+  AE02: [0, 2]   # 2 @
+  AE03: [0, 3]   # 3 #
+  AE04: [0, 4]   # 4 $
+  AE05: [0, 5]   # 5 %
+  AE06: [0, 6]   # 6 ^
+  AE07: [0, 7]   # 7 &
+  AE08: [0, 8]   # 8 *
+  AE09: [0, 9]   # 9 (
+  AE10: [0, 10]  # 0 )
+  AE11: [0, 11]  # - _
+  AE12: [0, 12]  # = +
+  # Top letter row (QWERTY)
+  AD01: [1, 0]   # Q
+  AD02: [1, 1]   # W
+  AD03: [1, 2]   # E
+  AD04: [1, 3]   # R
+  AD05: [1, 4]   # T
+  AD06: [1, 5]   # Y
+  AD07: [1, 6]   # U
+  AD08: [1, 7]   # I
+  AD09: [1, 8]   # O
+  AD10: [1, 9]   # P
+  AD11: [1, 10]  # [ {
+  AD12: [1, 11]  # ] }
+  # Middle letter row
+  AC01: [2, 0]   # A
+  AC02: [2, 1]   # S
+  AC03: [2, 2]   # D
+  AC04: [2, 3]   # F
+  AC05: [2, 4]   # G
+  AC06: [2, 5]   # H
+  AC07: [2, 6]   # J
+  AC08: [2, 7]   # K
+  AC09: [2, 8]   # L
+  AC10: [2, 9]   # ; :
+  AC11: [2, 10]  # ' "
+  BKSL: [2, 11]  # \ | (backslash key - position varies by layout)
+  # Bottom letter row
+  LSGT: [3, -1]  # < > (less/greater key on ISO keyboards)
+  AB01: [3, 0]   # Z
+  AB02: [3, 1]   # X
+  AB03: [3, 2]   # C
+  AB04: [3, 3]   # V
+  AB05: [3, 4]   # B
+  AB06: [3, 5]   # N
+  AB07: [3, 6]   # M
+  AB08: [3, 7]   # , <
+  AB09: [3, 8]   # . >
+  AB10: [3, 9]   # / ?
+
+# XKB keysym to character mappings
+keysym_mappings:
+  # ASCII symbols
+  space: ' '
+  exclam: '!'
+  at: '@'
+  numbersign: '#'
+  dollar: '$'
+  percent: '%'
+  asciicircum: '^'
+  ampersand: '&'
+  asterisk: '*'
+  parenleft: '('
+  parenright: ')'
+  minus: '-'
+  underscore: '_'
+  equal: '='
+  plus: '+'
+  bracketleft: '['
+  bracketright: ']'
+  braceleft: '{'
+  braceright: '}'
+  semicolon: ';'
+  colon: ':'
+  apostrophe: "'"
+  quotedbl: '"'
+  grave: '`'
+  asciitilde: '~'
+  backslash: '\'
+  bar: '|'
+  comma: ','
+  less: '<'
+  period: '.'
+  greater: '>'
+  slash: '/'
+  question: '?'
+  # Latin-1 Supplement
+  exclamdown: '¡'
+  cent: '¢'
+  sterling: '£'
+  currency: '¤'
+  yen: '¥'
+  brokenbar: '¦'
+  section: '§'
+  diaeresis: '¨'
+  copyright: '©'
+  ordfeminine: 'ª'
+  guillemotleft: '«'
+  notsign: '¬'
+  hyphen: '­'
+  registered: '®'
+  macron: '¯'
+  degree: '°'
+  plusminus: '±'
+  twosuperior: '²'
+  threesuperior: '³'
+  acute: '´'
+  mu: 'µ'
+  paragraph: '¶'
+  periodcentered: '·'
+  cedilla: '¸'
+  onesuperior: '¹'
+  masculine: 'º'
+  guillemotright: '»'
+  onequarter: '¼'
+  onehalf: '½'
+  threequarters: '¾'
+  questiondown: '¿'
+  # Latin letters with diacritics
+  Agrave: 'À'
+  Aacute: 'Á'
+  Acircumflex: 'Â'
+  Atilde: 'Ã'
+  Adiaeresis: 'Ä'
+  Aring: 'Å'
+  AE: 'Æ'
+  Ccedilla: 'Ç'
+  Egrave: 'È'
+  Eacute: 'É'
+  Ecircumflex: 'Ê'
+  Ediaeresis: 'Ë'
+  Igrave: 'Ì'
+  Iacute: 'Í'
+  Icircumflex: 'Î'
+  Idiaeresis: 'Ï'
+  ETH: 'Ð'
+  Eth: 'Ð'
+  Ntilde: 'Ñ'
+  Ograve: 'Ò'
+  Oacute: 'Ó'
+  Ocircumflex: 'Ô'
+  Otilde: 'Õ'
+  Odiaeresis: 'Ö'
+  multiply: '×'
+  Oslash: 'Ø'
+  Ooblique: 'Ø'
+  Ugrave: 'Ù'
+  Uacute: 'Ú'
+  Ucircumflex: 'Û'
+  Udiaeresis: 'Ü'
+  Yacute: 'Ý'
+  THORN: 'Þ'
+  Thorn: 'Þ'
+  ssharp: 'ß'
+  agrave: 'à'
+  aacute: 'á'
+  acircumflex: 'â'
+  atilde: 'ã'
+  adiaeresis: 'ä'
+  aring: 'å'
+  ae: 'æ'
+  ccedilla: 'ç'
+  egrave: 'è'
+  eacute: 'é'
+  ecircumflex: 'ê'
+  ediaeresis: 'ë'
+  igrave: 'ì'
+  iacute: 'í'
+  icircumflex: 'î'
+  idiaeresis: 'ï'
+  eth: 'ð'
+  ntilde: 'ñ'
+  ograve: 'ò'
+  oacute: 'ó'
+  ocircumflex: 'ô'
+  otilde: 'õ'
+  odiaeresis: 'ö'
+  division: '÷'
+  oslash: 'ø'
+  ooblique: 'ø'
+  ugrave: 'ù'
+  uacute: 'ú'
+  ucircumflex: 'û'
+  udiaeresis: 'ü'
+  yacute: 'ý'
+  thorn: 'þ'
+  ydiaeresis: 'ÿ'
+  # Special
+  NoSymbol: ''
+  VoidSymbol: ''
+  # Cyrillic
+  Cyrillic_io: 'ё'
+  Cyrillic_IO: 'Ё'
+  Cyrillic_a: 'а'
+  Cyrillic_A: 'А'
+  Cyrillic_be: 'б'
+  Cyrillic_BE: 'Б'
+  Cyrillic_ve: 'в'
+  Cyrillic_VE: 'В'
+  Cyrillic_ghe: 'г'
+  Cyrillic_GHE: 'Г'
+  Cyrillic_de: 'д'
+  Cyrillic_DE: 'Д'
+  Cyrillic_ie: 'е'
+  Cyrillic_IE: 'Е'
+  Cyrillic_zhe: 'ж'
+  Cyrillic_ZHE: 'Ж'
+  Cyrillic_ze: 'з'
+  Cyrillic_ZE: 'З'
+  Cyrillic_i: 'и'
+  Cyrillic_I: 'И'
+  Cyrillic_shorti: 'й'
+  Cyrillic_SHORTI: 'Й'
+  Cyrillic_ka: 'к'
+  Cyrillic_KA: 'К'
+  Cyrillic_el: 'л'
+  Cyrillic_EL: 'Л'
+  Cyrillic_em: 'м'
+  Cyrillic_EM: 'М'
+  Cyrillic_en: 'н'
+  Cyrillic_EN: 'Н'
+  Cyrillic_o: 'о'
+  Cyrillic_O: 'О'
+  Cyrillic_pe: 'п'
+  Cyrillic_PE: 'П'
+  Cyrillic_er: 'р'
+  Cyrillic_ER: 'Р'
+  Cyrillic_es: 'с'
+  Cyrillic_ES: 'С'
+  Cyrillic_te: 'т'
+  Cyrillic_TE: 'Т'
+  Cyrillic_u: 'у'
+  Cyrillic_U: 'У'
+  Cyrillic_ef: 'ф'
+  Cyrillic_EF: 'Ф'
+  Cyrillic_ha: 'х'
+  Cyrillic_HA: 'Х'
+  Cyrillic_tse: 'ц'
+  Cyrillic_TSE: 'Ц'
+  Cyrillic_che: 'ч'
+  Cyrillic_CHE: 'Ч'
+  Cyrillic_sha: 'ш'
+  Cyrillic_SHA: 'Ш'
+  Cyrillic_shcha: 'щ'
+  Cyrillic_SHCHA: 'Щ'
+  Cyrillic_hardsign: 'ъ'
+  Cyrillic_HARDSIGN: 'Ъ'
+  Cyrillic_yeru: 'ы'
+  Cyrillic_YERU: 'Ы'
+  Cyrillic_softsign: 'ь'
+  Cyrillic_SOFTSIGN: 'Ь'
+  Cyrillic_e: 'э'
+  Cyrillic_E: 'Э'
+  Cyrillic_yu: 'ю'
+  Cyrillic_YU: 'Ю'
+  Cyrillic_ya: 'я'
+  Cyrillic_YA: 'Я'
+  # Hebrew
+  hebrew_aleph: 'א'
+  hebrew_bet: 'ב'
+  hebrew_beth: 'ב'
+  hebrew_gimel: 'ג'
+  hebrew_gimmel: 'ג'
+  hebrew_dalet: 'ד'
+  hebrew_daleth: 'ד'
+  hebrew_he: 'ה'
+  hebrew_waw: 'ו'
+  hebrew_zain: 'ז'
+  hebrew_zayin: 'ז'
+  hebrew_chet: 'ח'
+  hebrew_het: 'ח'
+  hebrew_tet: 'ט'
+  hebrew_teth: 'ט'
+  hebrew_yod: 'י'
+  hebrew_finalkaph: 'ך'
+  hebrew_kaph: 'כ'
+  hebrew_lamed: 'ל'
+  hebrew_finalmem: 'ם'
+  hebrew_mem: 'מ'
+  hebrew_finalnun: 'ן'
+  hebrew_nun: 'נ'
+  hebrew_samech: 'ס'
+  hebrew_samekh: 'ס'
+  hebrew_ayin: 'ע'
+  hebrew_finalpe: 'ף'
+  hebrew_pe: 'פ'
+  hebrew_finalzade: 'ץ'
+  hebrew_finalzadi: 'ץ'
+  hebrew_zade: 'צ'
+  hebrew_zadi: 'צ'
+  hebrew_qoph: 'ק'
+  hebrew_kuf: 'ק'
+  hebrew_resh: 'ר'
+  hebrew_shin: 'ש'
+  hebrew_taw: 'ת'
+  hebrew_taf: 'ת'
+  # Arabic
+  Arabic_hamza: 'ء'
+  Arabic_alef: 'ا'
+  Arabic_beh: 'ب'
+  Arabic_teh: 'ت'
+  Arabic_theh: 'ث'
+  Arabic_jeem: 'ج'
+  Arabic_hah: 'ح'
+  Arabic_khah: 'خ'
+  Arabic_dal: 'د'
+  Arabic_thal: 'ذ'
+  Arabic_ra: 'ر'
+  Arabic_zain: 'ز'
+  Arabic_seen: 'س'
+  Arabic_sheen: 'ش'
+  Arabic_sad: 'ص'
+  Arabic_dad: 'ض'
+  Arabic_tah: 'ط'
+  Arabic_zah: 'ظ'
+  Arabic_ain: 'ع'
+  Arabic_ghain: 'غ'
+  Arabic_feh: 'ف'
+  Arabic_qaf: 'ق'
+  Arabic_kaf: 'ك'
+  Arabic_lam: 'ل'
+  Arabic_meem: 'م'
+  Arabic_noon: 'ن'
+  Arabic_ha: 'ه'
+  Arabic_waw: 'و'
+  Arabic_yeh: 'ي'
+  Arabic_fatha: 'َ'
+  Arabic_damma: 'ُ'
+  Arabic_kasra: 'ِ'
+  Arabic_shadda: 'ّ'
+  Arabic_sukun: 'ْ'
+  Arabic_tatweel: 'ـ'
+  Arabic_question_mark: '؟'
+  Arabic_comma: '،'
+  Arabic_semicolon: '؛'
+  # Greek
+  Greek_alpha: 'α'
+  Greek_ALPHA: 'Α'
+  Greek_beta: 'β'
+  Greek_BETA: 'Β'
+  Greek_gamma: 'γ'
+  Greek_GAMMA: 'Γ'
+  Greek_delta: 'δ'
+  Greek_DELTA: 'Δ'
+  Greek_epsilon: 'ε'
+  Greek_EPSILON: 'Ε'
+  Greek_zeta: 'ζ'
+  Greek_ZETA: 'Ζ'
+  Greek_eta: 'η'
+  Greek_ETA: 'Η'
+  Greek_theta: 'θ'
+  Greek_THETA: 'Θ'
+  Greek_iota: 'ι'
+  Greek_IOTA: 'Ι'
+  Greek_kappa: 'κ'
+  Greek_KAPPA: 'Κ'
+  Greek_lambda: 'λ'
+  Greek_LAMBDA: 'Λ'
+  Greek_mu: 'μ'
+  Greek_MU: 'Μ'
+  Greek_nu: 'ν'
+  Greek_NU: 'Ν'
+  Greek_xi: 'ξ'
+  Greek_XI: 'Ξ'
+  Greek_omicron: 'ο'
+  Greek_OMICRON: 'Ο'
+  Greek_pi: 'π'
+  Greek_PI: 'Π'
+  Greek_rho: 'ρ'
+  Greek_RHO: 'Ρ'
+  Greek_sigma: 'σ'
+  Greek_SIGMA: 'Σ'
+  Greek_finalsigma: 'ς'
+  Greek_tau: 'τ'
+  Greek_TAU: 'Τ'
+  Greek_upsilon: 'υ'
+  Greek_UPSILON: 'Υ'
+  Greek_phi: 'φ'
+  Greek_PHI: 'Φ'
+  Greek_chi: 'χ'
+  Greek_CHI: 'Χ'
+  Greek_psi: 'ψ'
+  Greek_PSI: 'Ψ'
+  Greek_omega: 'ω'
+  Greek_OMEGA: 'Ω'

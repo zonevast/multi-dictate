@@ -7,7 +7,151 @@ import logging
 import re
 import subprocess
 
+import yaml
+from box import Box
+
 logger = logging.getLogger(__name__)
+
+# Load keyboard configuration directly
+try:
+    with open("keyboard.yaml", "r", encoding="utf-8") as f:
+        _kbd = yaml.safe_load(f) or {}
+    kbd_cfg = Box(_kbd, default_box=True)
+except Exception as e:
+    logger.warning(f"Failed to load keyboard.yaml: {e}")
+    kbd_cfg = Box({}, default_box=True)
+
+
+def convert_keysym_to_char(sym):
+    """
+    Convert XKB keysym name to actual character.
+
+    Args:
+        sym: XKB keysym name (e.g., 'a', 'A', 'grave', 'exclam')
+
+    Returns:
+        str: Actual character or empty string if not convertible
+    """
+    if len(sym) == 1 and (sym.isalnum() or sym in "!@#$%^&*()-_=+[]{}\\|;:'\",.<>/?`~"):
+        return sym
+
+    mapping = kbd_cfg.keysym_mappings
+    if sym in mapping:
+        return mapping[sym]
+
+    # Check for dead keys and other special cases
+    if sym.startswith("dead_") or sym.startswith("ISO_") or sym.startswith("KP_"):
+        return ""
+
+    return ""
+
+
+def get_layout_key_mapping(layout_code):
+    """
+    Get keyboard key mapping for a specific layout by querying the system.
+
+    Uses setxkbmap and xkbcomp to get the actual key mappings from the system.
+
+    Args:
+        layout_code: Layout code (e.g., 'us', 'de', 'fr')
+
+    Returns:
+        dict: Mapping of physical positions to characters for each shift level
+    """
+    keysym_map = kbd_cfg.keysym_mappings
+    kcp = kbd_cfg.keycode_positions
+    try:
+        # Generate XKB keymap for the specific layout and compile it
+        cmd = f"setxkbmap -layout {layout_code} -print | xkbcomp -xkb - -"
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+
+        if res.stderr and "WARNING: Running setxkbmap against an Xwayland server" not in res.stderr:
+            logger.warning(f"xkbcomp warning: {res.stderr}")
+
+        keymap_text = res.stdout
+
+        if not kcp:
+            logger.error("No keycode positions provided")
+            return {}
+
+        keycode_positions = {k: tuple(v) if isinstance(v, list) else v for k, v in kcp.items()}
+
+        # Parse key definitions from xkbcomp output
+        # Pattern: key <KEYCODE> { [ symbol1, symbol2, symbol3, symbol4 ] };
+        # or: key <KEYCODE> { type= "ALPHABETIC", symbols[Group1]= [ symbol1, symbol2 ] };
+
+        mapping = {}
+
+        # Simple pattern for non-alphabetic keys
+        for m in re.finditer(r"key\s+<([A-Z0-9]+)>\s*{\s*\[([^\]]+)\]\s*}", keymap_text):
+            keycode = m.group(1)
+            if keycode not in keycode_positions:
+                continue
+
+            symbols_str = m.group(2).strip()
+            symbols = []
+            for sym in re.split(r",\s*", symbols_str):
+                sym = sym.strip()
+                # xkbcomp outputs actual characters for many cases
+                if len(sym) == 1:
+                    # Direct character
+                    char = sym
+                elif sym.startswith('"') and sym.endswith('"'):
+                    # Quoted character
+                    char = sym[1:-1]
+                elif sym.startswith("'") and sym.endswith("'"):
+                    # Single quoted character
+                    char = sym[1:-1]
+                else:
+                    # It's a keysym name
+                    char = convert_keysym_to_char(sym)
+                symbols.append(char)
+
+            if symbols:
+                row, col = keycode_positions[keycode]
+                if len(symbols) >= 1 and symbols[0]:
+                    mapping[(row, col, 0)] = symbols[0]  # Unshifted
+                if len(symbols) >= 2 and symbols[1]:
+                    mapping[(row, col, 1)] = symbols[1]  # Shifted
+
+        # Pattern for keys with type and symbols[Group1]
+        p = r'key\s+<([A-Z0-9]+)>\s*{\s*type\s*=\s*"[^"]+",\s*symbols\[Group1\]\s*=\s*\[([^\]]+)\]'
+        for m in re.finditer(p, keymap_text):
+            keycode = m.group(1)
+            if keycode not in keycode_positions:
+                continue
+
+            symbols_str = m.group(2).strip()
+            symbols = []
+            for sym in re.split(r",\s*", symbols_str):
+                sym = sym.strip()
+                # xkbcomp outputs actual characters for many cases
+                if len(sym) == 1:
+                    # Direct character
+                    char = sym
+                elif sym.startswith('"') and sym.endswith('"'):
+                    # Quoted character
+                    char = sym[1:-1]
+                elif sym.startswith("'") and sym.endswith("'"):
+                    # Single quoted character
+                    char = sym[1:-1]
+                else:
+                    # It's a keysym name
+                    char = convert_keysym_to_char(sym)
+                symbols.append(char)
+
+            if symbols:
+                row, col = keycode_positions[keycode]
+                if len(symbols) >= 1 and symbols[0]:
+                    mapping[(row, col, 0)] = symbols[0]  # Unshifted
+                if len(symbols) >= 2 and symbols[1]:
+                    mapping[(row, col, 1)] = symbols[1]  # Shifted
+
+        return mapping
+
+    except Exception as e:
+        logger.error(f"Failed to get key mapping for layout {layout_code}: {e}")
+        return {}
 
 
 def get_current_keyboard_layout():
@@ -19,65 +163,129 @@ def get_current_keyboard_layout():
         str: Current layout code (e.g., 'us', 'gb') or 'us' if unable to detect
     """
     try:
-        result = subprocess.run(
+        r = subprocess.run(
             ["gsettings", "get", "org.gnome.desktop.input-sources", "mru-sources"],
             capture_output=True,
             text=True,
             check=True,
         )
-        # Parse first entry from MRU list: [('xkb', 'us'), ('xkb', 'gb'), ...]
-        match = re.search(r"\('\w+', '(\w+)'\)", result.stdout)
-        return match.group(1) if match else "us"
+        m = re.search(r"\('\w+', '(\w+)'\)", r.stdout)
+        return m.group(1) if m else "us"
     except Exception:
         return "us"
 
 
-def build_layout_mappings(layouts):
+# Cache for layout mappings
+_layout_mappings_cache = {}
+
+
+def for_typewrite(text, layout=None):
     """
-    Build all keyboard layout mappings from configuration.
+    Convert text for typewriting by mapping from current layout to US layout.
 
     Args:
-        layouts: Dictionary of layout definitions
+        text: Text to convert
+        layout: Source layout code. If None, uses current keyboard layout
 
     Returns:
-        Dictionary of layout_name -> character mappings
+        str: Converted text ready for typewriting
     """
-    mappings = {}
+    if layout is None:
+        layout = get_current_keyboard_layout()
 
-    if not layouts:
-        logger.warning("No layouts provided")
-        return mappings
+    # If already US layout, return as is
+    if layout == "us":
+        return text
 
-    if "us" not in layouts:
-        logger.error("US layout required but not found in configuration")
-        return mappings
+    # Get or build mapping for this layout
+    global _layout_mappings_cache
+    if layout not in _layout_mappings_cache:
+        # Build mapping for this specific layout
 
-    try:
-        us_keys = layouts["us"]["keys"]
-        us_rows = us_keys.strip().split()
-    except KeyError:
-        logger.error("US layout missing 'keys' field")
-        return mappings
+        # Get US layout mapping first as reference
+        us_mapping = get_layout_key_mapping("us")
+        if not us_mapping:
+            logger.error("Failed to get US layout mapping")
+            return text
 
-    for layout_name, layout_data in layouts.items():
-        if layout_name == "us":
-            continue
+        # Get the source layout mapping
+        lm = get_layout_key_mapping(layout)
+        if not lm:
+            logger.warning(f"Failed to get mapping for layout {layout}")
+            return text
 
-        layout_keys = layout_data["keys"]
-        layout_rows = layout_keys.strip().split()
-        mapping = {}
+        # Create character-to-character mapping
+        char_mapping = {}
+        for pos, us_char in us_mapping.items():
+            if pos in lm:
+                lc = lm[pos]
+                # Skip empty or special characters
+                if lc and not lc.startswith("U+"):
+                    char_mapping[lc] = us_char
 
-        # Map all characters to their US QWERTY equivalents
-        for layout_row, us_row in zip(layout_rows, us_rows):
-            for layout_char, us_char in zip(layout_row, us_row):
-                mapping[layout_char] = us_char
-                # Add uppercase mapping if the character has a different uppercase form
-                upper_layout = layout_char.upper()
-                upper_us = us_char.upper()
-                if upper_layout != layout_char and upper_us != us_char:
-                    mapping[upper_layout] = upper_us
+        _layout_mappings_cache[layout] = char_mapping
+        logger.info(f"Built {len(char_mapping)} character mappings for layout '{layout}'")
 
-        mappings[layout_name] = mapping
-        logger.info(f"Built {len(mapping)} character mappings for layout '{layout_name}'")
+    # Convert the text
+    mapping = _layout_mappings_cache[layout]
+    if not mapping:
+        return text
 
-    return mappings
+    return "".join(mapping.get(c, c) for c in text)
+
+
+def test_for_typewrite():
+    """Test specific known conversions for various keyboard layouts."""
+
+    test_cases = [
+        # German layout
+        ("Straße", "de", "Stra-e"),
+        ("Übung", "de", "{bung"),
+        ("schön", "de", "sch;n"),
+        ("äöü", "de", "';["),
+        ("ÄÖÜ", "de", '":{'),
+        # Spanish layout
+        ("niño", "es", "ni;o"),
+        ("¿Qué?", "es", "+Qué_"),
+        ("¡Hola!", "es", "=Hola!"),
+        # Italian layout
+        ("città", "it", "citt'"),
+        ("perché", "it", "perch{"),
+        ("più", "it", "pi\\"),
+        # French layout
+        ("café", "fr", "cqf2"),
+        ("française", "fr", "frqn9qise"),
+        # Russian layout
+        ("Эхо", "ru", '"[j'),
+        ("эхо", "ru", "'[j"),
+        ("Привет", "ru", "Ghbdtn"),
+        ("ёжик", "ru", "`;br"),
+        # Hebrew layout
+        ("שלום", "il", "akuo"),
+        ("עברית", "il", "gcrh,"),
+    ]
+
+    failed = 0
+
+    print("Testing for_typewrite() conversions:")
+
+    for text, layout, expected in test_cases:
+        try:
+            result = for_typewrite(text, layout)
+            if result != expected:
+                print(f"{layout} <{text}> → <{result}> expected: <{expected}>")
+                failed += 1
+        except Exception as e:
+            print(f"✗ {layout:3} {text:15} → ERROR: {e}")
+            failed += 1
+
+    print(f"{failed} fails")
+
+    return failed == 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    success = test_for_typewrite()
+    sys.exit(0 if success else 1)
