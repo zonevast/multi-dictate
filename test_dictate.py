@@ -57,7 +57,7 @@ def send_cmd(cmd):
     os.close(fd)
 
 
-def play_audio(text, lang='en'):
+def play_audio(text, lang="en"):
     os.system(f"gtts-cli '{text}' -l {lang} | play -q -v 0.1 -t mp3 -")
 
 
@@ -69,7 +69,7 @@ def test_typewrite(sample):
     check_result(sample, input())
 
 
-def test_dictate(sample, lang='en'):
+def test_dictate(sample, lang="en"):
     send_cmd("record")
     time.sleep(1)
     play_audio(sample, lang)
@@ -83,7 +83,7 @@ def test_dictate(sample, lang='en'):
 init()
 time.sleep(0.5)
 kl = get_current_keyboard_layout()
-if kl not in ['us', 'de']:
+if kl not in ["us", "de"]:
     print(kl)
     for r in cfg.layouts[kl]["keys"].split():
         test_typewrite(r)
