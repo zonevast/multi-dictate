@@ -191,9 +191,10 @@ class DictationApp:
                     # Get gTTS config and override language if auto-detection is enabled
                     gtts_config = (self.cfg.gTTS or {}).copy()
                     if gtts_config.get("lang", "auto").lower() == "auto":
-                        lang_config = self.cfg.layouts[self.curr_layout].languages
-                        gtts_config["lang"] = lang_config.tts or "en"
-                        logger.debug(f"Using TTS language: {lang_config['tts']}")
+                        gtts_config["lang"] = (
+                            self.cfg.layouts[self.curr_layout].languages.tts or self.curr_layout
+                        )
+                        logger.debug(f"Using TTS language: {gtts_config['lang']}")
 
                     # Generate audio with gTTS
                     logger.debug(gtts_config)
@@ -255,7 +256,10 @@ class DictationApp:
         self.curr_layout = get_current_keyboard_layout()
         self.cur_lang = (self.cfg[f"recognize_{self.recognizer_engine}"].language or "auto").lower()
         if self.cur_lang == "auto":
-            self.cur_lang = self.cfg.layouts[self.curr_layout].languages.stt or "en-US"
+            self.cur_lang = (
+                self.cfg.layouts[self.curr_layout].languages.stt
+                or f"{self.curr_layout}-{self.curr_layout.upper()}"
+            )
         if not self.layout_mappings.get(self.curr_layout):
             logger.error(f"No keyboard mapping for '{self.curr_layout}'")
 
