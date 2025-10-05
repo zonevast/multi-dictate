@@ -24,6 +24,16 @@ layouts:
       stt: en-US
       tts: en
     test: Hello
+  de:
+    keys: |
+      ^1234567890ß´
+      qwertzuiopü+
+      asdfghjklöä
+      yxcvbnm,.-
+    languages:
+      stt: de-DE
+      tts: de
+    test: Straße Yoga Zucker
   es:
     keys: |
       º1234567890'¡
@@ -44,16 +54,6 @@ layouts:
       stt: fr-FR
       tts: fr
     test: Français
-  de:
-    keys: |
-      ^1234567890ß´
-      qwertzuiopü+
-      asdfghjklöä
-      yxcvbnm,.-
-    languages:
-      stt: de-DE
-      tts: de
-    test: Straße Yoga Zucker
   ru:
     keys: |
       ё1234567890-=
