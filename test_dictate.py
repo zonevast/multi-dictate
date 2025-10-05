@@ -11,7 +11,7 @@ from box import Box
 
 from kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
 
-FIFO_PATH = "/tmp/dictate_trigger"
+FIFO_PATH = "/tmp/dictate_test_trigger"
 dictate_proc = None
 cfg = None
 errors = 0
@@ -20,7 +20,9 @@ errors = 0
 def init():
     global dictate_proc, cfg
     dictate_proc = subprocess.Popen(
-        ["python3", "dictate.py", "--no-echo"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        ["python3", "dictate.py", "--no-echo", "--trigger", FIFO_PATH],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     for _ in range(30):
         if os.path.exists(FIFO_PATH):

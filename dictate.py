@@ -58,7 +58,6 @@ BYTES_PER_SEC = CHANNELS * SAMPLE_RATE * SAMPLE_WIDTH
 
 params = None
 logger = logging.getLogger(os.path.basename(__file__))
-fifo_path = "/tmp/dictate_trigger"
 
 
 class DictationApp:
@@ -549,7 +548,7 @@ class DictationApp:
         if not fifo:
             try:
                 # Use non-blocking open to avoid getting stuck
-                fifo = os.fdopen(os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK), "r")
+                fifo = os.fdopen(os.open(params.trigger, os.O_RDONLY | os.O_NONBLOCK), "r")
             except OSError as e:
                 if e.errno == errno.ENXIO:  # No writer yet
                     time.sleep(0.1)
@@ -571,19 +570,19 @@ class DictationApp:
 
     def run(self):
         """Start the FIFO listener"""
-        if os.path.exists(fifo_path):
-            os.remove(fifo_path)
+        if os.path.exists(params.trigger):
+            os.remove(params.trigger)
 
         try:
-            os.mkfifo(fifo_path)
-            print(f"Created FIFO pipe: {fifo_path}")
+            os.mkfifo(params.trigger)
+            print(f"Created FIFO pipe: {params.trigger}")
         except OSError as e:
             print(f"Could not create FIFO pipe: {e}")
             return
 
         print("Commands:")
         for cmd, (_, description) in self.commands.items():
-            print(f"  echo '{cmd}' > {fifo_path} # {description}")
+            print(f"  echo '{cmd}' > {params.trigger} # {description}")
         print("Press Ctrl+C to exit")
         logger.debug("Staring command loop")
 
@@ -607,8 +606,8 @@ class DictationApp:
         print("\nCleaning up resources...")
         if self.pasimple_stream:
             self.pasimple_stream = None  # Allow garbage collection
-        if os.path.exists(fifo_path):
-            os.remove(fifo_path)
+        if os.path.exists(params.trigger):
+            os.remove(params.trigger)
         self.hide_status_window()
 
 
@@ -644,6 +643,13 @@ def main():
         action="store_true",
         help="Run calibration to find the best speech recognition engine.",
     )
+    parser.add_argument(
+        "--trigger",
+        type=str,
+        default="/tmp/dictate_trigger",
+        help="Custom FIFO trigger path (default: /tmp/dictate_trigger). "
+        "When custom trigger is used, existing instances are not killed.",
+    )
     global params
     params = parser.parse_args()
 
@@ -660,7 +666,8 @@ def main():
 
     pid_file = "/tmp/dictate.pid"
 
-    if os.path.exists(pid_file):
+    # Only handle PID file if using default trigger
+    if params.trigger == "/tmp/dictate_trigger" and os.path.exists(pid_file):
         try:
             with open(pid_file, "r") as f:
                 pid = int(f.read().strip())
@@ -675,8 +682,10 @@ def main():
             logger.debug(traceback.format_exc())
 
     try:
-        with open(pid_file, "w") as f:
-            f.write(str(os.getpid()))
+        # Only write PID file if using default trigger
+        if params.trigger == "/tmp/dictate_trigger":
+            with open(pid_file, "w") as f:
+                f.write(str(os.getpid()))
 
         if not check_dependencies():
             sys.exit(1)
@@ -700,7 +709,8 @@ def main():
             sys.exit(1)
 
     finally:
-        if os.path.exists(pid_file):
+        # Only cleanup PID file if using default trigger
+        if params.trigger == "/tmp/dictate_trigger" and os.path.exists(pid_file):
             try:
                 with open(pid_file, "r") as f:
                     if int(f.read().strip()) == os.getpid():
