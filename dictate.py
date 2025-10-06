@@ -174,6 +174,66 @@ class DictationApp:
         )
         return True
 
+    def _speak_with_gtts(self, text):
+        """Try to speak text using gTTS and pasimple."""
+        try:
+            # Get gTTS config and override language if auto-detection is enabled
+            gtts_config = (self.cfg.gTTS or {}).copy()
+            if gtts_config.get("lang", "auto").lower() == "auto":
+                gtts_config["lang"] = (
+                    kbd_cfg.layouts[self.curr_layout].languages.tts or self.curr_layout
+                )
+                logger.debug(f"Using TTS language: {gtts_config['lang']}")
+
+            # Generate audio with gTTS
+            logger.debug(gtts_config)
+            tts = gTTS(text, **gtts_config)
+            audio_buffer = BytesIO()
+            tts.write_to_fp(audio_buffer)
+            audio_buffer.seek(0)
+
+            # Decode MP3 with pydub
+            audio = AudioSegment.from_mp3(audio_buffer)
+            audio -= 20  # Reduce volume by 20 dB
+
+            logger.debug(
+                f"Decoded audio: {audio.channels} channels, "
+                f"{audio.frame_rate} Hz, {len(audio.raw_data)} bytes"
+            )
+
+            # Play audio with pasimple
+            with pasimple.PaSimple(
+                pasimple.PA_STREAM_PLAYBACK,
+                pasimple.PA_SAMPLE_S16LE,
+                audio.channels,
+                audio.frame_rate,
+                app_name="dictate-app",
+                stream_name="playback",
+            ) as pa:
+                pa.write(audio.raw_data)
+                pa.drain()
+            return True
+        except Exception as e:
+            print(f"TTS with gTTS/pasimple failed: {e}")
+            logger.debug(traceback.format_exc())
+            return False
+
+    def _speak_with_espeak(self, text):
+        """Try to speak text using espeak."""
+        try:
+            subprocess.run(["espeak", "-a", "10", text], check=True, capture_output=True)
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+    def _speak_with_spd_say(self, text):
+        """Try to speak text using spd-say."""
+        try:
+            subprocess.run(["spd-say", text], check=True, capture_output=True)
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
     def speak_text(self, text, sync=False):
         """Convert text to speech using gTTS and pasimple."""
         logger.debug(f"'{text}'")
@@ -182,59 +242,13 @@ class DictationApp:
 
         def speak_in_thread():
             with self.tts_lock:
-                try:
-
-                    # Get gTTS config and override language if auto-detection is enabled
-                    gtts_config = (self.cfg.gTTS or {}).copy()
-                    if gtts_config.get("lang", "auto").lower() == "auto":
-                        gtts_config["lang"] = (
-                            kbd_cfg.layouts[self.curr_layout].languages.tts or self.curr_layout
-                        )
-                        logger.debug(f"Using TTS language: {gtts_config['lang']}")
-
-                    # Generate audio with gTTS
-                    logger.debug(gtts_config)
-                    tts = gTTS(text, **gtts_config)
-                    audio_buffer = BytesIO()
-                    tts.write_to_fp(audio_buffer)
-                    audio_buffer.seek(0)
-
-                    # Decode MP3 with pydub
-                    audio = AudioSegment.from_mp3(audio_buffer)
-
-                    # Reduce volume by 20 dB (to approx 10% of original)
-                    audio -= 20
-
-                    logger.debug(
-                        f"Decoded audio: {audio.channels} channels, "
-                        f"{audio.frame_rate} Hz, {len(audio.raw_data)} bytes"
-                    )
-
-                    # Play audio with pasimple
-                    with pasimple.PaSimple(
-                        pasimple.PA_STREAM_PLAYBACK,
-                        pasimple.PA_SAMPLE_S16LE,  # pydub default
-                        audio.channels,
-                        audio.frame_rate,
-                        app_name="dictate-app",
-                        stream_name="playback",
-                    ) as pa:
-                        pa.write(audio.raw_data)
-                        pa.drain()
-
-                except Exception as e:
-                    print(f"TTS with gTTS/pasimple failed: {e}")
-                    logger.debug(traceback.format_exc())
-                    # Fallback to system TTS
-                    try:
-                        subprocess.run(
-                            ["espeak", "-a", "10", text], check=True, capture_output=True
-                        )
-                    except (subprocess.CalledProcessError, FileNotFoundError):
-                        try:
-                            subprocess.run(["spd-say", text], check=True, capture_output=True)
-                        except (subprocess.CalledProcessError, FileNotFoundError):
-                            print(f"All TTS methods failed for: {text}")
+                if self._speak_with_gtts(text):
+                    return
+                if self._speak_with_espeak(text):
+                    return
+                if self._speak_with_spd_say(text):
+                    return
+                print(f"All TTS methods failed for: {text}")
 
         if sync:
             speak_in_thread()
