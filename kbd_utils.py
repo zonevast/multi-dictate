@@ -12,7 +12,6 @@ from box import Box
 
 logger = logging.getLogger(__name__)
 
-# Load keyboard configuration directly
 try:
     with open("keyboard.yaml", "r", encoding="utf-8") as f:
         _kbd = yaml.safe_load(f) or {}
@@ -34,17 +33,14 @@ def convert_keysym_to_char(sym):
     """
     sym = sym.strip()
 
-    # Handle quoted strings from xkbcomp output
     if sym.startswith('"') and sym.endswith('"'):
         return sym[1:-1]
     elif sym.startswith("'") and sym.endswith("'"):
         return sym[1:-1]
 
-    # Direct character
     if len(sym) == 1 and (sym.isalnum() or sym in "!@#$%^&*()-_=+[]{}\\|;:'\",.<>/?`~"):
         return sym
 
-    # Look up in mapping
     mapping = kbd_cfg.keysym_mappings
     if sym in mapping:
         return mapping[sym]
@@ -162,7 +158,6 @@ def for_typewrite(text, layout=None):
     if layout is None:
         layout = get_current_keyboard_layout()
 
-    # If already US layout, return as is
     if layout == "us":
         return text
 
@@ -187,14 +182,12 @@ def for_typewrite(text, layout=None):
         for pos, us_char in us_mapping.items():
             if pos in lm:
                 lc = lm[pos]
-                # Skip empty or special characters
                 if lc and not lc.startswith("U+"):
                     char_mapping[lc] = us_char
 
         _layout_mappings_cache[layout] = char_mapping
         logger.info(f"Built {len(char_mapping)} character mappings for layout '{layout}'")
 
-    # Convert the text
     mapping = _layout_mappings_cache[layout]
     if not mapping:
         return text
