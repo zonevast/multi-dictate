@@ -694,6 +694,9 @@ def main():
             print("This application is designed for Linux systems.")
             sys.exit(1)
 
+        # Allow X11 connections
+        subprocess.run(["xhost", "+"], capture_output=True, check=False)
+
         app = DictationApp()
         signal.signal(signal.SIGINT, app.signal_handler)
 

@@ -65,7 +65,7 @@ Focus cursor on an input field or text editor.
 
 Press activation key.
 
-Enable remote desktop. You will be prompted.
+Allow remote interaction when requested.
 
 ## Troubleshooting
 

@@ -19,6 +19,8 @@ errors = 0
 
 def init():
     global dictate_proc, cfg
+    # Allow X11 connections
+    subprocess.run(["xhost", "+"], capture_output=True, check=False)
     dictate_proc = subprocess.Popen(
         ["python3", "dictate.py", "--no-echo", "--trigger", FIFO_PATH],
         stdout=subprocess.DEVNULL,
