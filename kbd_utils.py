@@ -234,6 +234,40 @@ def get_dictate_bindings():
         return []
 
 
+def check_dictation_keybindings():
+    """Check and display custom keybindings for dictation."""
+    available_commands = ["record", "stop", "toggle", "record till pause", "echo"]
+    bound_commands = set()
+
+    dictate_bindings = get_dictate_bindings()
+
+    if dictate_bindings:
+        print("\nDictation keybindings:")
+        for binding in dictate_bindings:
+            key = binding.get("binding", "")
+            if not key:
+                continue
+            name = binding.get("name", "Unnamed")
+            cmd = binding.get("command", "")
+
+            # Extract the command being sent to dictate_trigger
+            m = re.search(r"echo\s+([^>]+?)\s*>>", cmd)
+            if m:
+                bound_commands.add(m.group(1).strip())
+
+            if key == "<Super>Insert" and cmd == 'sh -c "echo toggle >> /tmp/dictate_trigger"':
+                print(f"  {key}: {name} (press to talk)")
+            else:
+                print(f"  {key}: {name} {cmd}")
+
+    # Check for unbound commands
+    unbound = set(available_commands) - bound_commands
+    if unbound:
+        print("\nCommands without keybindings:")
+        for cmd in sorted(unbound):
+            print(f"  {cmd}")
+
+
 def test_for_typewrite():
     """Test specific known conversions for various keyboard layouts."""
 

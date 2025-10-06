@@ -43,7 +43,12 @@ from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
 
-from kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
+from kbd_utils import (
+    check_dictation_keybindings,
+    for_typewrite,
+    get_current_keyboard_layout,
+    kbd_cfg,
+)
 
 SetLogLevel(-1)
 
@@ -709,6 +714,8 @@ def main():
 
         # Allow X11 connections
         subprocess.run(["xhost", "+"], capture_output=True, check=False)
+
+        check_dictation_keybindings()
 
         app = DictationApp()
         signal.signal(signal.SIGINT, app.signal_handler)
