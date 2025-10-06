@@ -310,26 +310,25 @@ class DictationApp:
             recorded_audio_chunks.append(chunk)
             elapsed_ms = chunk_num * chunk_duration_ms
 
-            if stop_on_silence:
-                if self.vad.is_speech(chunk, SAMPLE_RATE):
-                    speech_started = True
-                    silence = 0
-                else:
-                    if speech_started and elapsed_ms > initial_silence_grace_ms:
-                        silence += 1
+            if not stop_on_silence:
+                continue
 
-                # Only stop if we've detected speech before and now have silence
-                if speech_started and silence * chunk_duration_ms > pause_threshold_ms:
-                    logger.debug(
-                        f"Silence detected after {elapsed_ms / 1000:.1f}s, recording stopped"
-                    )
-                    break
+            # Update speech and silence tracking
+            if self.vad.is_speech(chunk, SAMPLE_RATE):
+                speech_started = True
+                silence = 0
+            elif speech_started and elapsed_ms > initial_silence_grace_ms:
+                silence += 1
 
-                # Stop if no speech detected within timeout
-                no_speech_timeout_ms = (self.cfg.vad.no_speech_timeout or 5.0) * 1000
-                if not speech_started and elapsed_ms > no_speech_timeout_ms:
-                    logger.debug(f"No speech detected after {elapsed_ms / 1000:.1f}s, stopping")
-                    break
+            # Check stopping conditions
+            if speech_started and silence * chunk_duration_ms > pause_threshold_ms:
+                logger.debug(f"Silence detected after {elapsed_ms / 1000:.1f}s, recording stopped")
+                break
+
+            no_speech_timeout_ms = (self.cfg.vad.no_speech_timeout or 5.0) * 1000
+            if not speech_started and elapsed_ms > no_speech_timeout_ms:
+                logger.debug(f"No speech detected after {elapsed_ms / 1000:.1f}s, stopping")
+                break
 
         return b"".join(recorded_audio_chunks)
 
