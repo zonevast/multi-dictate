@@ -31,7 +31,6 @@ import traceback
 import warnings
 from io import BytesIO
 
-import Levenshtein
 import pasimple
 import pyautogui
 import speech_recognition as sr
@@ -113,6 +112,9 @@ class DictationApp:
         self.tts_lock = threading.Lock()
 
     def calibrate(self):
+
+        import Levenshtein
+
         """Calibrate voice recognition with all available engines."""
         duration = self.cfg.calibrate.duration or 20
         intro = f"Say this text for calibration of voice recognition during {duration} seconds:"
