@@ -1,9 +1,18 @@
-pyaudio==0.2.11
-pyautogui==0.9.54
-pydub
-pynput==1.7.6
-python-box
-python-Levenshtein==0.25.1
-SpeechRecognition==3.10.0
-vosk
-webrtcvad-wheels
+
+
+
+# Audio handling
+# Core dependencies
+gtts>=2.3.0
+# GUI dependencies (required by pyautogui)
+# Note: Also requires system packages: python3-tk, python3-dev
+# Optional dependencies
+pasimple>=0.0.2
+pyautogui>=0.9.53
+pydub>=0.25.1
+python-box>=7.0.0
+# python-Levenshtein>=0.20.0  # Only needed for --calibrate mode
+PyYAML>=6.0
+SpeechRecognition>=3.10.0
+# vosk>=0.3.45                 # For offline speech recognition
+webrtcvad>=2.0.10
