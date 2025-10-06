@@ -68,7 +68,6 @@ def get_layout_key_mapping(layout_code):
     Returns:
         dict: Mapping of physical positions to characters for each shift level
     """
-    keysym_map = kbd_cfg.keysym_mappings
     kcp = kbd_cfg.keycode_positions
     try:
         # Generate XKB keymap for the specific layout and compile it
@@ -168,7 +167,6 @@ def for_typewrite(text, layout=None):
         return text
 
     # Get or build mapping for this layout
-    global _layout_mappings_cache
     if layout not in _layout_mappings_cache:
         # Build mapping for this specific layout
 
