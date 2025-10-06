@@ -24,17 +24,27 @@ except Exception as e:
 
 def convert_keysym_to_char(sym):
     """
-    Convert XKB keysym name to actual character.
+    Convert XKB keysym name or xkbcomp output to actual character.
 
     Args:
-        sym: XKB keysym name (e.g., 'a', 'A', 'grave', 'exclam')
+        sym: XKB keysym name (e.g., 'a', 'A', 'grave', 'exclam') or quoted string
 
     Returns:
         str: Actual character or empty string if not convertible
     """
+    sym = sym.strip()
+
+    # Handle quoted strings from xkbcomp output
+    if sym.startswith('"') and sym.endswith('"'):
+        return sym[1:-1]
+    elif sym.startswith("'") and sym.endswith("'"):
+        return sym[1:-1]
+
+    # Direct character
     if len(sym) == 1 and (sym.isalnum() or sym in "!@#$%^&*()-_=+[]{}\\|;:'\",.<>/?`~"):
         return sym
 
+    # Look up in mapping
     mapping = kbd_cfg.keysym_mappings
     if sym in mapping:
         return mapping[sym]
@@ -89,23 +99,7 @@ def get_layout_key_mapping(layout_code):
                 continue
 
             symbols_str = m.group(2).strip()
-            symbols = []
-            for sym in re.split(r",\s*", symbols_str):
-                sym = sym.strip()
-                # xkbcomp outputs actual characters for many cases
-                if len(sym) == 1:
-                    # Direct character
-                    char = sym
-                elif sym.startswith('"') and sym.endswith('"'):
-                    # Quoted character
-                    char = sym[1:-1]
-                elif sym.startswith("'") and sym.endswith("'"):
-                    # Single quoted character
-                    char = sym[1:-1]
-                else:
-                    # It's a keysym name
-                    char = convert_keysym_to_char(sym)
-                symbols.append(char)
+            symbols = [convert_keysym_to_char(sym) for sym in re.split(r",\s*", symbols_str)]
 
             if symbols:
                 row, col = keycode_positions[keycode]
@@ -122,23 +116,7 @@ def get_layout_key_mapping(layout_code):
                 continue
 
             symbols_str = m.group(2).strip()
-            symbols = []
-            for sym in re.split(r",\s*", symbols_str):
-                sym = sym.strip()
-                # xkbcomp outputs actual characters for many cases
-                if len(sym) == 1:
-                    # Direct character
-                    char = sym
-                elif sym.startswith('"') and sym.endswith('"'):
-                    # Quoted character
-                    char = sym[1:-1]
-                elif sym.startswith("'") and sym.endswith("'"):
-                    # Single quoted character
-                    char = sym[1:-1]
-                else:
-                    # It's a keysym name
-                    char = convert_keysym_to_char(sym)
-                symbols.append(char)
+            symbols = [convert_keysym_to_char(sym) for sym in re.split(r",\s*", symbols_str)]
 
             if symbols:
                 row, col = keycode_positions[keycode]
