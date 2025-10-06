@@ -92,13 +92,13 @@ def get_layout_key_mapping(layout_code):
 
         mapping = {}
 
-        # Simple pattern for non-alphabetic keys
-        for m in re.finditer(r"key\s+<([A-Z0-9]+)>\s*{\s*\[([^\]]+)\]\s*}", keymap_text):
-            keycode = m.group(1)
+        def process_key_match(match):
+            """Process a regex match for key definition."""
+            keycode = match.group(1)
             if keycode not in keycode_positions:
-                continue
+                return
 
-            symbols_str = m.group(2).strip()
+            symbols_str = match.group(2).strip()
             symbols = [convert_keysym_to_char(sym) for sym in re.split(r",\s*", symbols_str)]
 
             if symbols:
@@ -107,23 +107,15 @@ def get_layout_key_mapping(layout_code):
                     mapping[(row, col, 0)] = symbols[0]  # Unshifted
                 if len(symbols) >= 2 and symbols[1]:
                     mapping[(row, col, 1)] = symbols[1]  # Shifted
+
+        # Simple pattern for non-alphabetic keys
+        for m in re.finditer(r"key\s+<([A-Z0-9]+)>\s*{\s*\[([^\]]+)\]\s*}", keymap_text):
+            process_key_match(m)
 
         # Pattern for keys with type and symbols[Group1]
         p = r'key\s+<([A-Z0-9]+)>\s*{\s*type\s*=\s*"[^"]+",\s*symbols\[Group1\]\s*=\s*\[([^\]]+)\]'
         for m in re.finditer(p, keymap_text):
-            keycode = m.group(1)
-            if keycode not in keycode_positions:
-                continue
-
-            symbols_str = m.group(2).strip()
-            symbols = [convert_keysym_to_char(sym) for sym in re.split(r",\s*", symbols_str)]
-
-            if symbols:
-                row, col = keycode_positions[keycode]
-                if len(symbols) >= 1 and symbols[0]:
-                    mapping[(row, col, 0)] = symbols[0]  # Unshifted
-                if len(symbols) >= 2 and symbols[1]:
-                    mapping[(row, col, 1)] = symbols[1]  # Shifted
+            process_key_match(m)
 
         return mapping
 
