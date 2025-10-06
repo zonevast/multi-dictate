@@ -195,6 +195,45 @@ def for_typewrite(text, layout=None):
     return "".join(mapping.get(c, c) for c in text)
 
 
+def get_dictate_bindings():
+    """Get dictation keybindings from dconf."""
+    try:
+        result = subprocess.run(
+            ["dconf", "dump", "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if not result.stdout:
+            return []
+
+        dictate_bindings = []
+        section = {}
+
+        for line in result.stdout.strip().split("\n"):
+            line = line.strip()
+            if line.startswith("[") and line.endswith("]"):
+                if section and "dictate_trigger" in section.get("command", ""):
+                    dictate_bindings.append(section)
+                section = {}
+            elif "=" in line:
+                m = re.match(r"^(\w+)=(.*)$", line)
+                if not m:
+                    continue
+                key = m.group(1)
+                value = m.group(2)
+                # Remove outer quotes if present
+                value = re.sub(r'^(["\'])(.*)(\1)$', r"\2", value)
+                section[key] = value
+
+        if section and "dictate_trigger" in section.get("command", ""):
+            dictate_bindings.append(section)
+
+        return dictate_bindings
+    except Exception:
+        return []
+
+
 def test_for_typewrite():
     """Test specific known conversions for various keyboard layouts."""
 
