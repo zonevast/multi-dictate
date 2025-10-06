@@ -212,6 +212,7 @@ def test_for_typewrite():
         ("schön", "de", "sch;n"),
         ("äöü", "de", "';["),
         ("ÄÖÜ", "de", '":{'),
+        ("yz", "de", "zy"),
         # Spanish layout
         ("niño", "es", "ni;o"),
         ("¿Qué?", "es", "+Qué_"),
