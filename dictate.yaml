@@ -13,3 +13,19 @@ calibrate:
     The quick brown fox jumps over the lazy dog.
     The dog thinks hard, hanging his head and humming a song.
     The fox judges each choice with vision, chewing cool food on the lawn.
+keybindings:
+  - name: "Toggle speech echo on/off"
+    command: echo
+    keys: "<Super>F11"
+  - name: "Start manual recording"
+    command: record
+    keys: "AudioRecord"
+  - name: "Stop recording"
+    command: stop
+    keys: "Cancel"
+  - name: "Toggle recording (press to talk)"
+    command: toggle
+    keys: "<Super>Insert"
+  - name: "Record until silence detected"
+    command: record till pause
+    keys: "<Shift><Control>s"

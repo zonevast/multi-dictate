@@ -73,6 +73,7 @@ class DictationApp:
         except Exception:
             logger.debug(traceback.format_exc())
         self.cfg = Box(y, default_box=True)
+        check_dictation_keybindings(self.cfg.keybindings)
         self.recognizer_engine = self.cfg.general.recognizer_engine or "google"
         self.status_window = None
         self.recognizer = sr.Recognizer()
@@ -714,8 +715,6 @@ def main():
 
         # Allow X11 connections
         subprocess.run(["xhost", "+"], capture_output=True, check=False)
-
-        check_dictation_keybindings()
 
         app = DictationApp()
         signal.signal(signal.SIGINT, app.signal_handler)

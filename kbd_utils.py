@@ -12,6 +12,8 @@ from box import Box
 
 logger = logging.getLogger(__name__)
 
+custom_keybindings_path = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
+
 try:
     with open("keyboard.yaml", "r", encoding="utf-8") as f:
         _kbd = yaml.safe_load(f) or {}
@@ -19,6 +21,8 @@ try:
 except Exception as e:
     logger.warning(f"Failed to load keyboard.yaml: {e}")
     kbd_cfg = Box({}, default_box=True)
+
+occupied_slots = set()
 
 
 def convert_keysym_to_char(sym):
@@ -45,7 +49,6 @@ def convert_keysym_to_char(sym):
     if sym in mapping:
         return mapping[sym]
 
-    # Check for dead keys and other special cases
     if sym.startswith("dead_") or sym.startswith("ISO_") or sym.startswith("KP_"):
         return ""
 
@@ -196,10 +199,12 @@ def for_typewrite(text, layout=None):
 
 
 def get_dictate_bindings():
-    """Get dictation keybindings from dconf."""
+    """Get dictation keybindings from dconf and find occupied slots."""
+    global occupied_slots
+
     try:
         result = subprocess.run(
-            ["dconf", "dump", "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/"],
+            ["dconf", "dump", f"{custom_keybindings_path}/"],
             capture_output=True,
             text=True,
             check=False,
@@ -209,6 +214,7 @@ def get_dictate_bindings():
 
         dictate_bindings = []
         section = {}
+        current_slot = None
 
         for line in result.stdout.strip().split("\n"):
             line = line.strip()
@@ -216,15 +222,20 @@ def get_dictate_bindings():
                 if section and "dictate_trigger" in section.get("command", ""):
                     dictate_bindings.append(section)
                 section = {}
+                m = re.match(r"\[custom(\d+)\]", line)
+                if m:
+                    current_slot = int(m.group(1))
+                    occupied_slots.add(current_slot)
             elif "=" in line:
                 m = re.match(r"^(\w+)=(.*)$", line)
                 if not m:
                     continue
                 key = m.group(1)
                 value = m.group(2)
-                # Remove outer quotes if present
                 value = re.sub(r'^(["\'])(.*)(\1)$', r"\2", value)
                 section[key] = value
+                if current_slot is not None:
+                    section["slot"] = current_slot
 
         if section and "dictate_trigger" in section.get("command", ""):
             dictate_bindings.append(section)
@@ -234,38 +245,100 @@ def get_dictate_bindings():
         return []
 
 
-def check_dictation_keybindings():
-    """Check and display custom keybindings for dictation."""
-    available_commands = ["record", "stop", "toggle", "record till pause", "echo"]
+def add_dictation_keybinding(cmd, name, keys):
+    """Add a single dictation keybinding using dconf."""
+    global occupied_slots
+
+    try:
+        i = 0
+        while i in occupied_slots:
+            i += 1
+            if i > 100:  # Safety limit
+                return False
+
+        path = f"{custom_keybindings_path}/custom{i}/"
+
+        command = f'sh -c "echo {cmd} >> /tmp/dictate_trigger"'
+
+        subprocess.run(["dconf", "write", f"{path}name", f"'{name}'"], check=False)
+        subprocess.run(["dconf", "write", f"{path}command", f"'{command}'"], check=False)
+        subprocess.run(["dconf", "write", f"{path}binding", f"'{keys}'"], check=False)
+
+        occupied_slots.add(i)
+
+        result = subprocess.run(
+            ["dconf", "read", custom_keybindings_path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        kb_list = result.stdout.strip()
+        if not kb_list or kb_list in ["'[]'", "@as []"]:
+            kb_list = f"['{path}']"
+        else:
+            kb_list = kb_list.rstrip("]")
+            if kb_list != "[":
+                kb_list += ", "
+            kb_list += f"'{path}']"
+
+        cmd = [
+            "dconf",
+            "write",
+            custom_keybindings_path,
+            kb_list,
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if result.returncode != 0:
+            logger.error(f"dconf write failed: {result.stderr}")
+
+        return True
+    except Exception as e:
+        logger.error(f"Failed to add keybinding for {cmd}: {e}")
+        return False
+
+
+def check_dictation_keybindings(kb_config=None):
+    """Check and display custom keybindings for dictation.
+
+    Args:
+        kb_config: Optional keybinding configuration list.
+    """
+    if not kb_config:
+        kb_config = []
+
+    kb_dict = {item["command"]: item for item in kb_config}
+    available_commands = list(kb_dict.keys())
     bound_commands = set()
 
     dictate_bindings = get_dictate_bindings()
 
-    if dictate_bindings:
-        print("\nDictation keybindings:")
-        for binding in dictate_bindings:
-            key = binding.get("binding", "")
-            if not key:
-                continue
-            name = binding.get("name", "Unnamed")
-            cmd = binding.get("command", "")
+    print("\nDictation keybindings:")
+    for binding in dictate_bindings:
+        key = binding.get("binding", "")
+        if not key:
+            continue
+        command = binding.get("command", "")
+        name = binding.get("name", "Unnamed")
+        keys = binding.get("binding", "")
 
-            # Extract the command being sent to dictate_trigger
-            m = re.search(r"echo\s+([^>]+?)\s*>>", cmd)
-            if m:
-                bound_commands.add(m.group(1).strip())
+        m = re.search(r'echo\s+"([^"]+)"\s*>>', command) or re.search(
+            r"echo\s+([^>]+?)\s*>>", command
+        )
+        if m:
+            bound_commands.add(m.group(1).strip())
+            print(f"{name:40} {keys:20}")
 
-            if key == "<Super>Insert" and cmd == 'sh -c "echo toggle >> /tmp/dictate_trigger"':
-                print(f"  {key}: {name} (press to talk)")
-            else:
-                print(f"  {key}: {name} {cmd}")
-
-    # Check for unbound commands
     unbound = set(available_commands) - bound_commands
     if unbound:
-        print("\nCommands without keybindings:")
-        for cmd in sorted(unbound):
-            print(f"  {cmd}")
+        print("Adding missing keybindings:")
+    for cmd in sorted(unbound):
+        kb_info = kb_dict.get(cmd, {})
+        name = kb_info.get("name", "")
+        keys = kb_info.get("keys", "")
+        if keys:
+            if add_dictation_keybinding(cmd, name, keys):
+                print(f"{name:40} {keys:20}")
 
 
 def test_for_typewrite():
