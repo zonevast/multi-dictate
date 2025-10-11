@@ -95,7 +95,6 @@ class DictationApp:
 
         self.gui_queue = []
         self.command = None
-        self.pasimple_stream = None
         self.recording_active = False
         self.stop_recording_flag = False
         self.continuous_mode_active = False
@@ -114,7 +113,6 @@ class DictationApp:
             "echo": (self._toggle_speech_echo, "Toggle speech echo on/off"),
         }
 
-        self.setup_pasimple_recording()
         self.tts_lock = threading.Lock()
 
     def calibrate(self):
@@ -167,8 +165,8 @@ class DictationApp:
         self.shutdown_flag = True
 
     def setup_pasimple_recording(self):
-        """Setup pasimple audio recording stream"""
-        self.pasimple_stream = pasimple.PaSimple(
+        """Create and return a new pasimple audio recording stream"""
+        return pasimple.PaSimple(
             pasimple.PA_STREAM_RECORD,
             FORMAT,
             CHANNELS,
@@ -178,7 +176,6 @@ class DictationApp:
             maxlength=BYTES_PER_SEC * 2,
             fragsize=BYTES_PER_SEC // 5,
         )
-        return True
 
     def _speak_with_gtts(self, text):
         """Try to speak text using gTTS and pasimple."""
@@ -263,10 +260,6 @@ class DictationApp:
 
     def record_audio(self, max_duration=60, stop_on_silence=False):
         """Record audio manually until stop command or timeout"""
-        if not self.pasimple_stream:
-            print("Failed to setup recording")
-            return None
-
         self.stop_recording_flag = False
 
         self.curr_layout = get_current_keyboard_layout()
@@ -286,16 +279,19 @@ class DictationApp:
 
         self.show_status_window(f"Listening {lc2}🎤", "lightcoral")
 
+        pasimple_stream = self.setup_pasimple_recording()
         try:
-            return self._record_chunks(max_duration, stop_on_silence)
-        except Exception as e:
-            print(f"Recording failed: {e}")
-            logger.debug(traceback.format_exc())
-            return None
+            return self._record_chunks(pasimple_stream, max_duration, stop_on_silence)
         finally:
+            # Close microphone stream
+            if pasimple_stream:
+                try:
+                    pasimple_stream.close()
+                except Exception:
+                    pass  # Ignore errors during cleanup
             self.hide_status_window()
 
-    def _record_chunks(self, max_duration, stop_on_silence=False):
+    def _record_chunks(self, pasimple_stream, max_duration, stop_on_silence=False):
         """Record audio chunks using VAD"""
         logger.debug("")
         chunk_duration_ms = 30
@@ -311,7 +307,7 @@ class DictationApp:
             if self.stop_recording_flag or self.shutdown_flag:
                 break
 
-            chunk = self.pasimple_stream.read(vad_chunk_size)
+            chunk = pasimple_stream.read(vad_chunk_size)
 
             recorded_audio_chunks.append(chunk)
             elapsed_ms = chunk_num * chunk_duration_ms
@@ -428,6 +424,10 @@ class DictationApp:
                 self.hide_status_window()
                 if params.echo:
                     self.speak_text(t)
+            except Exception as e:
+                logger.error(f"Error during recording: {e}")
+                logger.debug(traceback.format_exc())
+                self._show_error("Recording error")
             finally:
                 self.recording_active = False
                 self.hide_status_window()
@@ -623,8 +623,6 @@ class DictationApp:
         self._cleaned_up = True
 
         print("\nCleaning up resources...")
-        if self.pasimple_stream:
-            self.pasimple_stream = None  # Allow garbage collection
         if os.path.exists(params.trigger):
             os.remove(params.trigger)
         self.hide_status_window()
