@@ -16,13 +16,13 @@ calibrate:
 keybindings:
   - name: "Toggle speech echo on/off"
     command: echo
-    keys: "<Super>F11"
+    keys: "<Super>F10"
   - name: "Start manual recording"
     command: record
-    keys: "AudioRecord"
+    keys: "<Super>F11"
   - name: "Stop recording"
     command: stop
-    keys: "Cancel"
+    keys: "<Super>F12"
   - name: "Toggle recording (press to talk)"
     command: toggle
     keys: "<Super>Insert"
