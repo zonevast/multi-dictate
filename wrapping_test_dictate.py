@@ -64,7 +64,7 @@ def play_audio(text, lang="en"):
 
 
 def test_typewrite(sample):
-    to_type = for_typewrite(sample, kl)
+    to_type = for_typewrite(kl, sample)
     pyautogui.typewrite(to_type + "\n")
     time.sleep(0.5)
     check_result(sample, input())

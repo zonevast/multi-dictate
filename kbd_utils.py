@@ -147,13 +147,13 @@ def get_current_keyboard_layout():
 _layout_mappings_cache = {}
 
 
-def for_typewrite(text, layout=None):
+def for_typewrite(layout, text):
     """
     Convert text for typewriting by mapping from current layout to US layout.
 
     Args:
-        text: Text to convert
         layout: Source layout code. If None, uses current keyboard layout
+        text: Text to convert
 
     Returns:
         str: Converted text ready for typewriting
@@ -346,40 +346,40 @@ def test_for_typewrite():
 
     test_cases = [
         # German layout
-        ("Straße", "de", "Stra-e"),
-        ("Übung", "de", "{bung"),
-        ("schön", "de", "sch;n"),
-        ("äöü", "de", "';["),
-        ("ÄÖÜ", "de", '":{'),
-        ("yz", "de", "zy"),
+        ("de", "Straße", "Stra-e"),
+        ("de", "Übung", "{bung"),
+        ("de", "schön", "sch;n"),
+        ("de", "äöü", "';["),
+        ("de", "ÄÖÜ", '":{'),
+        ("de", "yz", "zy"),
         # Spanish layout
-        ("niño", "es", "ni;o"),
-        ("¿Qué?", "es", "+Qué_"),
-        ("¡Hola!", "es", "=Hola!"),
+        ("es", "niño", "ni;o"),
+        ("es", "¿Qué?", "+Qué_"),
+        ("es", "¡Hola!", "=Hola!"),
         # Italian layout
-        ("città", "it", "citt'"),
-        ("perché", "it", "perch{"),
-        ("più", "it", "pi\\"),
+        ("it", "città", "citt'"),
+        ("it", "perché", "perch{"),
+        ("it", "più", "pi\\"),
         # French layout
-        ("café", "fr", "cqf2"),
-        ("française", "fr", "frqn9qise"),
+        ("fr", "café", "cqf2"),
+        ("fr", "française", "frqn9qise"),
         # Russian layout
-        ("Эхо", "ru", '"[j'),
-        ("эхо", "ru", "'[j"),
-        ("Привет", "ru", "Ghbdtn"),
-        ("ёжик", "ru", "`;br"),
+        ("ru", "Эхо", '"[j'),
+        ("ru", "эхо", "'[j"),
+        ("ru", "Привет", "Ghbdtn"),
+        ("ru", "ёжик", "`;br"),
         # Hebrew layout
-        ("שלום", "il", "akuo"),
-        ("עברית", "il", "gcrh,"),
+        ("il", "שלום", "akuo"),
+        ("il", "עברית", "gcrh,"),
     ]
 
     failed = 0
 
     print("Testing for_typewrite() conversions:")
 
-    for text, layout, expected in test_cases:
+    for layout, text, expected in test_cases:
         try:
-            result = for_typewrite(text, layout)
+            result = for_typewrite(layout, text)
             if result != expected:
                 print(f"{layout} <{text}> → <{result}> expected: <{expected}>")
                 failed += 1

@@ -43,12 +43,8 @@ from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
 
-from kbd_utils import (
-    check_dictation_keybindings,
-    for_typewrite,
-    get_current_keyboard_layout,
-    kbd_cfg,
-)
+from kbd_utils import (check_dictation_keybindings, for_typewrite,
+                       get_current_keyboard_layout, kbd_cfg)
 
 SetLogLevel(-1)
 
@@ -428,7 +424,7 @@ class DictationApp:
             text = self._recognize(audio)
             logger.info(text)
 
-            to_type = for_typewrite(text, self.curr_layout)
+            to_type = for_typewrite(self.curr_layout, text)
             t = self.cfg.general.typewrite_interval or 0.05
             pyautogui.typewrite(to_type + " ", interval=t)
         except sr.UnknownValueError:
