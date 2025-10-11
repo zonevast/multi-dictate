@@ -79,7 +79,7 @@ class DictationApp:
         self.recognizer = sr.Recognizer()
         self.vad = webrtcvad.Vad()
         self.curr_layout = None
-        self.vad.set_mode(self.cfg.vad.aggressiveness or 0)  # Set aggressiveness mode (0-3)
+        self.vad.set_mode(self.cfg.vad.aggressiveness or 0)
         vars(self.recognizer).update(self.cfg.Recognizer)
 
         self.recognizer_engines = {
@@ -101,7 +101,6 @@ class DictationApp:
         self.shutdown_flag = False
         self._cleaned_up = False
 
-        # Command mapping
         self.commands = {
             "record": (self.start_manual_recording, "Start manual recording till stop"),
             "stop": (self.stop_manual_recording, "Stop manual recording"),
@@ -180,7 +179,6 @@ class DictationApp:
     def _speak_with_gtts(self, text):
         """Try to speak text using gTTS and pasimple."""
         try:
-            # Get gTTS config and override language if auto-detection is enabled
             gtts_config = (self.cfg.gTTS or {}).copy()
             if gtts_config.get("lang", "auto").lower() == "auto":
                 gtts_config["lang"] = (
@@ -188,14 +186,12 @@ class DictationApp:
                 )
                 logger.debug(f"Using TTS language: {gtts_config['lang']}")
 
-            # Generate audio with gTTS
             logger.debug(gtts_config)
             tts = gTTS(text, **gtts_config)
             audio_buffer = BytesIO()
             tts.write_to_fp(audio_buffer)
             audio_buffer.seek(0)
 
-            # Decode MP3 with pydub
             audio = AudioSegment.from_mp3(audio_buffer)
             audio -= 20  # Reduce volume by 20 dB
 
@@ -204,7 +200,6 @@ class DictationApp:
                 f"{audio.frame_rate} Hz, {len(audio.raw_data)} bytes"
             )
 
-            # Play audio with pasimple
             with pasimple.PaSimple(
                 pasimple.PA_STREAM_PLAYBACK,
                 pasimple.PA_SAMPLE_S16LE,
@@ -283,7 +278,6 @@ class DictationApp:
         try:
             return self._record_chunks(pasimple_stream, max_duration, stop_on_silence)
         finally:
-            # Close microphone stream
             if pasimple_stream:
                 try:
                     pasimple_stream.close()
@@ -315,14 +309,12 @@ class DictationApp:
             if not stop_on_silence:
                 continue
 
-            # Update speech and silence tracking
             if self.vad.is_speech(chunk, SAMPLE_RATE):
                 speech_started = True
                 silence = 0
             elif speech_started and elapsed_ms > initial_silence_grace_ms:
                 silence += 1
 
-            # Check stopping conditions
             if speech_started and silence * chunk_duration_ms > pause_threshold_ms:
                 logger.debug(f"Silence detected after {elapsed_ms / 1000:.1f}s, recording stopped")
                 break
@@ -346,7 +338,6 @@ class DictationApp:
 
         def update_gui():
             if self.status_window:
-                # Update existing window instead of destroying
                 self.status_window.configure(bg=color)
                 for widget in self.status_window.winfo_children():
                     widget.destroy()
@@ -356,7 +347,6 @@ class DictationApp:
                 self.status_window.attributes("-topmost", True)
                 self.status_window.overrideredirect(True)
 
-                # Center on primary monitor
                 try:
                     from screeninfo import get_monitors
 
@@ -365,7 +355,6 @@ class DictationApp:
                     y = primary_monitor.y + (primary_monitor.height - height) // 2
                     self.status_window.geometry(f"{width}x{height}+{x}+{y}")
                 except Exception:
-                    # Fallback to fixed position if screeninfo not available
                     self.status_window.geometry(f"{width}x{height}+300+10")
 
                 self.status_window.configure(bg=color)
@@ -447,7 +436,6 @@ class DictationApp:
             text = self._recognize(audio)
             logger.info(text)
 
-            # Convert the recognized text to physical keys for the current layout
             to_type = for_typewrite(text, self.curr_layout)
             t = self.cfg.general.typewrite_interval or 0.05
             pyautogui.typewrite(to_type + " ", interval=t)
@@ -491,13 +479,11 @@ class DictationApp:
             try:
                 print("Listening 🎤")
                 while self.continuous_mode_active and not self.shutdown_flag:
-                    # Record audio until silence is detected
                     data = self.record_audio(max_duration=60, stop_on_silence=True)
                     if not data:
                         print("No audio data recorded")
                         continue
 
-                    # Debug: show audio length
                     audio_duration = len(data) / BYTES_PER_SEC
                     print(f"Recorded {audio_duration:.2f} seconds of audio")
 
@@ -522,7 +508,6 @@ class DictationApp:
         logger.debug("")
         self.show_status_window(message, "lightcoral")
 
-        # Auto-hide after 2 seconds
         def hide_later():
             time.sleep(2)
             logger.debug("")
@@ -548,10 +533,8 @@ class DictationApp:
 
     def input_command(self, fifo):
         """Read and process commands from the FIFO pipe."""
-        # Wait for data on the fifo with a timeout
         if not fifo:
             try:
-                # Use non-blocking open to avoid getting stuck
                 fifo = os.fdopen(os.open(params.trigger, os.O_RDONLY | os.O_NONBLOCK), "r")
             except OSError as e:
                 if e.errno == errno.ENXIO:  # No writer yet
@@ -593,7 +576,6 @@ class DictationApp:
         fifo = None
         try:
             while not self.shutdown_flag:
-                # Process GUI queue
                 while self.gui_queue:
                     self.gui_queue.pop(0)()
 
@@ -675,7 +657,7 @@ def main():
                 pid = int(f.read().strip())
             print(f"Terminating previous instance with PID {pid}...")
             os.kill(pid, signal.SIGTERM)
-            time.sleep(0.1)  # Give it a moment to terminate
+            time.sleep(0.1)
         except (IOError, ValueError, ProcessLookupError):
             # Stale PID file or process not found
             pass
@@ -684,7 +666,6 @@ def main():
             logger.debug(traceback.format_exc())
 
     try:
-        # Only write PID file if using default trigger
         if params.trigger == "/tmp/dictate_trigger":
             with open(pid_file, "w") as f:
                 f.write(str(os.getpid()))
@@ -696,7 +677,6 @@ def main():
             print("This application is designed for Linux systems.")
             sys.exit(1)
 
-        # Allow X11 connections
         subprocess.run(["xhost", "+"], capture_output=True, check=False)
 
         app = DictationApp()
