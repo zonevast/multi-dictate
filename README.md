@@ -23,14 +23,13 @@ A voice dictation application for Linux that supports multiple keyboard layouts,
 
 ### Interfaces
 
-- Custom keyboard bindings
-- /tmp/dictate_trigger - Control FIFO
-- `pasimple` - PulseAudio interface
-- `webrtcvad` - Voice Activity Detection
-- `speech_recognition` - Google Speech Recognition
-- `gtts` - Google Text-to-Speech
-- `tkinter` - Visual status indicator
-- [`pyautogui.typewrite`](https://pyautogui.readthedocs.io/en/latest/keyboard.html) - Final text output into keyboard buffer
+- [Custom keyboard bindings](https://wiki.ubuntu.com/Keybindings)
+- [`pasimple`](https://github.com/henrikschnor/pasimple) - PulseAudio interface
+- [`webrtcvad`](https://github.com/wiseman/py-webrtcvad) - Voice Activity Detection
+- [`speech_recognition`](https://github.com/Uberi/speech_recognition) - Google Speech Recognition
+- [`gtts`](https://gtts.readthedocs.io/) - Google Text-to-Speech for echo mode
+- [`tkinter`](https://docs.python.org/3/library/tkinter.html) - for Visual status indicator
+- [`pyautogui.typewrite`](https://pyautogui.readthedocs.io/en/latest/keyboard.html) - for final text output into keyboard buffer
 - Remote desktop access
 
 Optional packages:
