@@ -26,7 +26,7 @@ A voice dictation application for Linux that supports multiple keyboard layouts,
 - [Custom keyboard bindings](https://wiki.ubuntu.com/Keybindings)
 - [`pasimple`](https://github.com/henrikschnor/pasimple) - PulseAudio interface
 - [`webrtcvad`](https://github.com/wiseman/py-webrtcvad) - Voice Activity Detection
-- [`speech_recognition`](https://github.com/Uberi/speech_recognition) - Google Speech Recognition
+- [`speech_recognition`](https://github.com/Uberi/speech_recognition),  [Google Speech Recognition](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_googleaudio_data-audiodata-key-unionstr-none--none-language-str--en-us--pfilter-union0-1-show_all-bool--false---unionstr-dictstr-any)
 - [`gtts`](https://gtts.readthedocs.io/) - Google Text-to-Speech for echo mode
 - [`tkinter`](https://docs.python.org/3/library/tkinter.html) - for Visual status indicator
 - [`pyautogui.typewrite`](https://pyautogui.readthedocs.io/en/latest/keyboard.html) - for final text output into keyboard buffer
