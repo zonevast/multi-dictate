@@ -1,6 +1,8 @@
 #!/bin/bash
 
-t="dictate.py kbd_utils.py test_dictate.py"
+t="dictate.py kbd_utils.py test_dictate.py test_dictate_unit.py"
+
+sed -i 's/[[:space:]]*$//' $t
 
 # Format imports
 isort --check-only --quiet $t || isort $t
