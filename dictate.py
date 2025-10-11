@@ -132,9 +132,6 @@ class DictationApp:
         print("Listening 🎤")
         audio = self._convert_raw_audio_to_sr_format(self.record_audio(duration))
         self.speak_text("Thank you.")
-        if not audio:
-            print("Calibration failed: Audio conversion error.")
-            return
 
         results = []
         print("Recognizing")
@@ -278,11 +275,10 @@ class DictationApp:
         try:
             return self._record_chunks(pasimple_stream, max_duration, stop_on_silence)
         finally:
-            if pasimple_stream:
-                try:
-                    pasimple_stream.close()
-                except Exception:
-                    pass  # Ignore errors during cleanup
+            try:
+                pasimple_stream.close()
+            except Exception:
+                pass  # Ignore errors during cleanup
             self.hide_status_window()
 
     def _record_chunks(self, pasimple_stream, max_duration, stop_on_silence=False):
@@ -397,10 +393,6 @@ class DictationApp:
         def record_and_process():
             try:
                 data = self.record_audio(60)
-                if not data:
-                    self._show_error("Recording failed")
-                    return
-
                 self.show_status_window("Processing ⏳", "lightsalmon")
                 audio = self._convert_raw_audio_to_sr_format(data)
 
@@ -480,9 +472,6 @@ class DictationApp:
                 print("Listening 🎤")
                 while self.continuous_mode_active and not self.shutdown_flag:
                     data = self.record_audio(max_duration=60, stop_on_silence=True)
-                    if not data:
-                        print("No audio data recorded")
-                        continue
 
                     audio_duration = len(data) / BYTES_PER_SEC
                     print(f"Recorded {audio_duration:.2f} seconds of audio")
