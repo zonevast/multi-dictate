@@ -345,30 +345,29 @@ def test_for_typewrite():
     """Test specific known conversions for various keyboard layouts."""
 
     test_cases = [
-        # German layout
+        ("de", "äöüß", "';[-"),
+        ("de", "ÄÖÜ", '":{'),
+        ("de", "yz", "zy"),
         ("de", "Straße", "Stra-e"),
         ("de", "Übung", "{bung"),
         ("de", "schön", "sch;n"),
-        ("de", "äöü", "';["),
-        ("de", "ÄÖÜ", '":{'),
-        ("de", "yz", "zy"),
-        # Spanish layout
+        ("es", "ñÑ", ";:"),
         ("es", "niño", "ni;o"),
         ("es", "¿Qué?", "+Qué_"),
         ("es", "¡Hola!", "=Hola!"),
-        # Italian layout
+        ("it", "àèù", "'[\\"),
         ("it", "città", "citt'"),
         ("it", "perché", "perch{"),
         ("it", "più", "pi\\"),
-        # French layout
         ("fr", "café", "cqf2"),
         ("fr", "française", "frqn9qise"),
-        # Russian layout
-        ("ru", "Эхо", '"[j'),
+        ("fr", "azerty", "qwerty"),
+        ("fr", "qwerty", "azerty"),
+        ("ru", "йцукен", "qwerty"),
+        ("ru", "хъжэбюё", "[];',.`"),
+        ("ru", "ХЪЖЭБЮЁ", "{}:\"<>~"),
         ("ru", "эхо", "'[j"),
-        ("ru", "Привет", "Ghbdtn"),
         ("ru", "ёжик", "`;br"),
-        # Hebrew layout
         ("il", "שלום", "akuo"),
         ("il", "עברית", "gcrh,"),
     ]
