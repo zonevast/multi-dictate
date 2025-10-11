@@ -325,7 +325,7 @@ class DictationApp:
 
         self.stop_recording_flag = True
 
-    def show_status_window(self, message, color="lightcoral", width=300, height=20):
+    def show_status_window(self, message, color="lightcoral", width=200, height=100):
         """Show a small status window centered on primary monitor"""
 
         def update_gui():
