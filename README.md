@@ -34,7 +34,7 @@ A voice dictation application for Linux that supports multiple keyboard layouts,
 
 Optional packages:
 - `python-Levenshtein` - For calibration mode only (`--calibrate`)
-- `vosk` - For offline speech recognition
+- [`vosk`](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_voskaudio_data-audiodata--verbose-bool--false---unionstr-dictstr-str) - For offline speech recognition
 
 ## Configuration
 
