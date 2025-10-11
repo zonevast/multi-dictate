@@ -413,12 +413,7 @@ class DictationApp:
                     return
 
                 self.show_status_window("Processing ⏳", "lightsalmon")
-
                 audio = self._convert_raw_audio_to_sr_format(data)
-                if not audio:
-                    self.hide_status_window()
-                    self._show_error("Audio conversion failed")
-                    return
 
                 t = self._process_audio(audio)
                 self.hide_status_window()
@@ -470,23 +465,17 @@ class DictationApp:
     def _convert_raw_audio_to_sr_format(self, data):
         """Convert raw audio data to speech_recognition AudioData format"""
         logger.debug("")
-        try:
-            import io
-            import wave
+        import io
+        import wave
 
-            buf = io.BytesIO()
-            with wave.open(buf, "wb") as f:
-                f.setnchannels(CHANNELS)  # pylint: disable=no-member
-                f.setsampwidth(SAMPLE_WIDTH)  # pylint: disable=no-member
-                f.setframerate(SAMPLE_RATE)  # pylint: disable=no-member
-                f.writeframes(data)  # pylint: disable=no-member
-            buf.seek(0)
-            return sr.AudioData(buf.getvalue(), SAMPLE_RATE, SAMPLE_WIDTH)
-
-        except Exception as e:
-            print(f"Audio conversion error: {e}")
-            logger.debug(traceback.format_exc())
-            return None
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as f:
+            f.setnchannels(CHANNELS)  # pylint: disable=no-member
+            f.setsampwidth(SAMPLE_WIDTH)  # pylint: disable=no-member
+            f.setframerate(SAMPLE_RATE)  # pylint: disable=no-member
+            f.writeframes(data)  # pylint: disable=no-member
+        buf.seek(0)
+        return sr.AudioData(buf.getvalue(), SAMPLE_RATE, SAMPLE_WIDTH)
 
     def start_continuous_recording(self):
         """Start continuous audio recording - records until silence/pause detected"""
@@ -513,11 +502,7 @@ class DictationApp:
                     print(f"Recorded {audio_duration:.2f} seconds of audio")
 
                     self.show_status_window("⏳ Processing...", "lightsalmon")
-
                     audio = self._convert_raw_audio_to_sr_format(data)
-                    if not audio:
-                        logger.error("Audio conversion failed")
-                        break
 
                     if not self._process_audio(audio):
                         print("Stopping")
