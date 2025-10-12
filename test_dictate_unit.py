@@ -33,7 +33,24 @@ def mock_dependencies():
          patch('os.mkfifo') as mock_mkfifo, \
          patch('os.remove') as mock_remove, \
          patch('os.path.exists') as mock_exists, \
-         patch('builtins.open', mock_open(read_data='general:\n  recognizer_engine: google\n')) as mock_file:
+         patch('builtins.open', mock_open(read_data='''general:
+  recognizer_engine: google
+colors:
+  light:
+    fg: black
+    listening: lightcoral
+    processing: lightsalmon
+    error: lightcoral
+    echo: lightblue
+    default: lightgray
+  dark:
+    fg: white
+    listening: indianred
+    processing: peru
+    error: indianred
+    echo: steelblue
+    default: dimgray
+''')) as mock_file:
 
         # Configure mocks
         mock_get_layout.return_value = 'us'

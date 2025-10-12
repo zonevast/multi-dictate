@@ -77,6 +77,8 @@ class DictationApp:
         self.curr_layout = None
         self.vad.set_mode(self.cfg.vad.aggressiveness or 0)
         vars(self.recognizer).update(self.cfg.Recognizer)
+        self._color_style = "light"
+        self._fg_color = None
 
         self.recognizer_engines = {
             "google": {
@@ -109,6 +111,36 @@ class DictationApp:
         }
 
         self.tts_lock = threading.Lock()
+
+    def color_style(self):
+        """Detect system color style."""
+
+        self._color_style = "light"
+        try:
+            r = subprocess.run(
+                ['gsettings', 'get', 'org.gnome.desktop.interface', 'color-scheme'],
+                capture_output=True, text=True
+            )
+            if r.returncode == 0 and 'dark' in r.stdout.lower():
+                self._color_style = "dark"
+        except Exception:
+            pass
+
+        if self._color_style == "light":
+            try:
+                r = subprocess.run(
+                    ['gsettings', 'get', 'org.gnome.desktop.interface', 'gtk-theme'],
+                    capture_output=True, text=True
+                )
+                if r.returncode == 0 and 'dark' in r.stdout.lower():
+                        self._color_style = "dark"
+            except Exception:
+                pass
+
+        self._fg_color = self.cfg.colors[self._color_style].fg or 'black'
+        logger.debug(self._color_style)
+        return self._color_style
+
 
     def calibrate(self):
 
@@ -265,7 +297,8 @@ class DictationApp:
         else:
             lc2 = ""
 
-        self.show_status_window(f"Listening {lc2}🎤", "lightcoral")
+        self.color_style()
+        self.show_status_window(f"Listening {lc2}🎤", "listening")
 
         pasimple_stream = self.setup_pasimple_recording()
         try:
@@ -274,7 +307,7 @@ class DictationApp:
             try:
                 pasimple_stream.close()
             except Exception:
-                pass  # Ignore errors during cleanup
+                pass
             self.hide_status_window()
 
     def _record_chunks(self, pasimple_stream, max_duration, stop_on_silence=False):
@@ -325,12 +358,16 @@ class DictationApp:
 
         self.stop_recording_flag = True
 
-    def show_status_window(self, message, color="lightcoral", width=200, height=100):
+    def show_status_window(self, message, status_type="default", width=200, height=100):
         """Show a small status window centered on primary monitor"""
+
+        assert self._color_style
+        c = self.cfg.colors[self._color_style]
+        bg_color = c.get(status_type, 'gray')
 
         def update_gui():
             if self.status_window:
-                self.status_window.configure(bg=color)
+                self.status_window.configure(bg=bg_color)
                 for widget in self.status_window.winfo_children():
                     widget.destroy()
             else:
@@ -349,13 +386,13 @@ class DictationApp:
                 except Exception:
                     self.status_window.geometry(f"{width}x{height}+300+10")
 
-                self.status_window.configure(bg=color)
+                self.status_window.configure(bg=bg_color)
 
             tk.Label(
                 self.status_window,
                 text=message,
-                bg=color,
-                fg="black",
+                bg=bg_color,
+                fg=self._fg_color,
                 font=("Arial", 12),
             ).pack(expand=True)
             self.status_window.update()
@@ -389,7 +426,7 @@ class DictationApp:
         def record_and_process():
             try:
                 data = self.record_audio(60)
-                self.show_status_window("Processing ⏳", "lightsalmon")
+                self.show_status_window("Processing ⏳", "processing")
                 audio = self._convert_raw_audio_to_sr_format(data)
 
                 t = self._process_audio(audio)
@@ -472,7 +509,7 @@ class DictationApp:
                     audio_duration = len(data) / BYTES_PER_SEC
                     print(f"Recorded {audio_duration:.2f} seconds of audio")
 
-                    self.show_status_window("⏳ Processing...", "lightsalmon")
+                    self.show_status_window("⏳ Processing...", "processing")
                     audio = self._convert_raw_audio_to_sr_format(data)
 
                     if not self._process_audio(audio):
@@ -490,8 +527,8 @@ class DictationApp:
 
     def _show_error(self, message):
         """Show error window"""
-        logger.debug("")
-        self.show_status_window(message, "lightcoral")
+        logger.debug(message)
+        self.show_status_window(message, "error")
 
         def hide_later():
             time.sleep(2)
@@ -514,7 +551,7 @@ class DictationApp:
         params.echo = not params.echo
         status = "enabled" if params.echo else "disabled"
         print(f"Speech echo {status}")
-        self.show_status_window(f"Echo {status}", "lightblue")
+        self.show_status_window(f"Echo {status}", "echo")
 
     def input_command(self, fifo):
         """Read and process commands from the FIFO pipe."""

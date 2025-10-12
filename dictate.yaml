@@ -25,14 +25,12 @@ colors:
     processing: lightsalmon
     error: lightcoral
     echo: lightblue
-    default: lightgray
   dark:
     fg: white
     listening: indianred
     processing: peru
     error: indianred
     echo: steelblue
-    default: dimgray
 Recognizer:
   pause_threshold: 1
 recognize_google:
