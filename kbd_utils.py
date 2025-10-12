@@ -145,7 +145,6 @@ def get_current_keyboard_layout():
         return "us"
 
 
-# Cache for layout mappings
 _layout_mappings_cache = {}
 
 
@@ -255,7 +254,7 @@ def add_dictation_keybinding(cmd, name, keys):
         i = 0
         while i in occupied_slots:
             i += 1
-            if i > 100:  # Safety limit
+            if i > 100:
                 return False
 
         path = f"{custom_keybindings_path}/custom{i}/"
