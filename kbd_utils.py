@@ -137,8 +137,10 @@ def get_current_keyboard_layout():
             text=True,
             check=True,
         )
-        m = re.search(r"\('\w+', '(\w+)'\)", r.stdout)
-        return m.group(1) if m else "us"
+        m = re.search(r"\('\w+', '([^']+)'\)", r.stdout)
+        layout = m.group(1) if m else "us"
+        logger.debug(layout)
+        return layout
     except Exception:
         return "us"
 
