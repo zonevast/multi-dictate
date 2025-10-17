@@ -16,7 +16,7 @@ keybindings:
     keys: "<Shift><Control>s"
 general:
   recognizer_engine: google
-  typewrite_interval: 0.03
+  typewrite_interval: 0.04
 # Status window colors for light and dark styles
 colors:
   light:
