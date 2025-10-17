@@ -466,7 +466,7 @@ class DictationApp:
             pyautogui.typewrite(to_type + " ", interval=t)
         except sr.UnknownValueError:
             print("No speech detected")
-            self._show_error("No speech detected")
+            #self._show_error("No speech detected")
         except sr.RequestError as e:
             print(f"❌ Speech service error: {e}")
             self._show_error("❌ Service error")
