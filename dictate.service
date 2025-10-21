@@ -1,0 +1,25 @@
+[Unit]
+Description=Multi-Dictate Service
+Documentation=https://github.com/yourusername/multi-dictate
+After=graphical-session.target
+
+[Service]
+Type=simple
+# Use the pip-installed command
+ExecStart=%h/.local/bin/multi-dictate
+# Restart on failure with delay
+Restart=on-failure
+RestartSec=5
+# Environment variables for proper display and audio
+Environment="DISPLAY=:0"
+Environment="PULSE_RUNTIME_PATH=/run/user/%U/pulse"
+# Ensure proper permissions for GUI operations
+Environment="XAUTHORITY=%h/.Xauthority"
+# Add local bin to PATH for user-installed packages
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+# Log output
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

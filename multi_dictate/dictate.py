@@ -43,8 +43,23 @@ from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
 
-from kbd_utils import (check_dictation_keybindings, for_typewrite,
-                       get_current_keyboard_layout, kbd_cfg)
+
+try:
+    # When running as part of package
+    from .kbd_utils import (
+        check_dictation_keybindings,
+        for_typewrite,
+        get_current_keyboard_layout,
+        kbd_cfg,
+    )
+except ImportError:
+    # When running directly
+    from kbd_utils import (
+        check_dictation_keybindings,
+        for_typewrite,
+        get_current_keyboard_layout,
+        kbd_cfg,
+    )
 
 SetLogLevel(-1)
 
@@ -63,12 +78,28 @@ class DictationApp:
 
     def __init__(self):
         y = {}
-        try:
-            with open("dictate.yaml", "r", encoding="utf-8") as f:
-                y = yaml.safe_load(f) or {}
-        except Exception:
-            logger.debug(traceback.format_exc())
+        # Look for config file in multiple locations
+        config_paths = [
+            os.path.expanduser("~/.config/multi-dictate/dictate.yaml"),  # User config
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "dictate.yaml"),  # Package dir
+            "dictate.yaml",  # Current directory
+        ]
+
+        for config_path in config_paths:
+            if os.path.exists(config_path):
+                try:
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        y = yaml.safe_load(f) or {}
+                        logger.info(f"Loaded config from {config_path}")
+                        break
+                except Exception:
+                    logger.debug(traceback.format_exc())
+
+        if not y:
+            logger.warning("No config file found, using defaults")
+
         self.cfg = Box(y, default_box=True)
+        logger.debug(f"Config general section: {dict(self.cfg.general)}")
         check_dictation_keybindings(self.cfg.keybindings)
         self.recognizer_engine = self.cfg.general.recognizer_engine or "google"
         self.status_window = None

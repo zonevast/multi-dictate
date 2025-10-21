@@ -4,6 +4,7 @@ Keyboard layout utilities for dictation app.
 """
 
 import logging
+import os
 import re
 import subprocess
 
@@ -14,13 +15,28 @@ logger = logging.getLogger(__name__)
 
 custom_keybindings_path = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings"
 
-try:
-    with open("keyboard.yaml", "r", encoding="utf-8") as f:
-        _kbd = yaml.safe_load(f) or {}
-    kbd_cfg = Box(_kbd, default_box=True)
-except Exception as e:
-    logger.warning(f"Failed to load keyboard.yaml: {e}")
-    kbd_cfg = Box({}, default_box=True)
+# Look for keyboard config file in multiple locations
+_kbd = {}
+keyboard_config_paths = [
+    os.path.expanduser("~/.config/multi-dictate/keyboard.yaml"),  # User config
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "keyboard.yaml"),  # Package dir
+    "keyboard.yaml",  # Current directory
+]
+
+for config_path in keyboard_config_paths:
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                _kbd = yaml.safe_load(f) or {}
+                logger.info(f"Loaded keyboard config from {config_path}")
+                break
+        except Exception as e:
+            logger.warning(f"Failed to load {config_path}: {e}")
+
+if not _kbd:
+    logger.warning("No keyboard.yaml found, using defaults")
+
+kbd_cfg = Box(_kbd, default_box=True)
 
 occupied_slots = set()
 

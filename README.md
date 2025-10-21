@@ -1,12 +1,13 @@
-# Voice Dictation Tool for Linux
+# Multi-Dictate
 
 A voice dictation application for Linux that supports multiple keyboard layouts, including non-QWERTY layouts. The tool captures voice input, converts it to text using speech recognition, and types it into any application while properly handling keyboard layout conversions.
 
 ## Features
 
-- Voice-to-text dictation triggered via FIFO commands
+- Multi-language voice-to-text dictation triggered via FIFO commands
 - Multi-language support with automatic language detection based on keyboard layout
 - Proper text input for non-QWERTY layouts (AZERTY, QWERTZ, etc.)
+- Fast clipboard-based text insertion (much faster than typing)
 - Text-to-speech echo of recognized text
 - Visual status indicator during recording
 
@@ -16,9 +17,28 @@ A voice dictation application for Linux that supports multiple keyboard layouts,
 - Linux (tested on Fedora, Ubuntu, Debian)
 - X11 or Wayland display server
 
-### Quick install:
+## Installation
+
+The installation script will:
+- Install system dependencies
+- Install Python dependencies
+- Set up the application as a system service
+- Enable automatic startup on boot
+
 ```bash
+# Clone the repository (if not already done)
+git clone https://github.com/makelinux/multi-dictate.git
+cd multi-dictate
+
+# Run the installation script
 ./install.sh
+```
+
+### Uninstallation
+
+To completely remove the application:
+```bash
+./uninstall.sh
 ```
 
 ### Interfaces
@@ -55,16 +75,53 @@ Edit `dictate.yaml` to configure:
 
 ## Usage
 
-1. Start the dictation service:
+### After Installation
+
+Once installed with `./install.sh`, the application is installed as a Python package and the service runs automatically:
+
+1. **Check service status:**
    ```bash
-   ./dictate.py
+   systemctl --user status dictate.service
    ```
 
-Focus cursor on an input field or text editor.
+2. **View service logs:**
+   ```bash
+   journalctl --user -u dictate.service -f
+   ```
 
-Press activation key.
+3. **Control the service:**
+   ```bash
+   # Stop the service
+   systemctl --user stop dictate.service
 
-Allow remote interaction when requested.
+   # Start the service
+   systemctl --user start dictate.service
+
+   # Restart the service
+   systemctl --user restart dictate.service
+
+   # Disable auto-start on boot
+   systemctl --user disable dictate.service
+   ```
+
+### Using the Dictation Feature
+
+1. Focus cursor on any input field or text editor
+2. Use one of the following keybindings:
+   - **Super+F11**: Start manual recording (press Super+F12 to stop)
+   - **Super+Insert**: Toggle recording (press to talk)
+   - **Ctrl+Shift+S**: Record until silence detected (automatic stop)
+   - **Super+F10**: Toggle speech echo on/off
+3. Speak clearly into your microphone
+4. The recognized text will be typed at your cursor position
+
+### Configuration
+
+The application uses configuration files stored in:
+- `~/.config/multi-dictate/dictate.yaml` - Main configuration
+- `~/.config/multi-dictate/keyboard.yaml` - Keyboard layout mappings
+
+
 
 ## Troubleshooting
 
