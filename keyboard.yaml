@@ -1,4 +1,5 @@
 layouts:
+  # Non obvious configurations
   # English variants
   us: {languages: {stt: en-US, tts: en}}
   gb: {languages: {stt: en-GB, tts: en}}
@@ -9,15 +10,8 @@ layouts:
   nz: {languages: {stt: en-NZ, tts: en}}
   za: {languages: {stt: en-ZA, tts: en}}
   # Portuguese variants
-  pt: {languages: {stt: pt-PT, tts: pt}}
   br: {languages: {stt: pt-BR, tts: pt}}
   # European languages
-  de: {languages: {stt: de-DE, tts: de}}
-  fr: {languages: {stt: fr-FR, tts: fr}}
-  es: {languages: {stt: es-ES, tts: es}}
-  it: {languages: {stt: it-IT, tts: it}}
-  ru: {languages: {stt: ru-RU, tts: ru}}
-  tr: {languages: {stt: tr-TR, tts: tr}}
   gr: {languages: {stt: el-GR, tts: el}}
   cz: {languages: {stt: cs-CZ, tts: cs}}
   dk: {languages: {stt: da-DK, tts: da}}
