@@ -18,9 +18,9 @@ custom_keybindings_path = "/org/gnome/settings-daemon/plugins/media-keys/custom-
 # Look for keyboard config file in multiple locations
 _kbd = {}
 keyboard_config_paths = [
+    "keyboard.yaml",  # Current directory
     os.path.expanduser("~/.config/multi-dictate/keyboard.yaml"),  # User config
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "keyboard.yaml"),  # Package dir
-    "keyboard.yaml",  # Current directory
 ]
 
 for config_path in keyboard_config_paths:

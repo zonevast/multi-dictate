@@ -80,9 +80,9 @@ class DictationApp:
         y = {}
         # Look for config file in multiple locations
         config_paths = [
+            "dictate.yaml",  # Current directory
             os.path.expanduser("~/.config/multi-dictate/dictate.yaml"),  # User config
             os.path.join(os.path.dirname(os.path.abspath(__file__)), "dictate.yaml"),  # Package dir
-            "dictate.yaml",  # Current directory
         ]
 
         for config_path in config_paths:
