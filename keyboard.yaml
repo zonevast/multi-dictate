@@ -1,35 +1,35 @@
 layouts:
   # Non obvious configurations
   # English variants
-  us: {languages: {stt: en-US, tts: en}}
-  gb: {languages: {stt: en-GB, tts: en}}
-  uk: {languages: {stt: en-GB, tts: en}}
-  au: {languages: {stt: en-AU, tts: en}}
-  ca: {languages: {stt: en-CA, tts: en}}
-  ie: {languages: {stt: en-IE, tts: en}}
-  nz: {languages: {stt: en-NZ, tts: en}}
-  za: {languages: {stt: en-ZA, tts: en}}
+  us: {stt: en-US, tts: en}
+  gb: {stt: en-GB, tts: en}
+  uk: {stt: en-GB, tts: en}
+  au: {stt: en-AU, tts: en}
+  ca: {stt: en-CA, tts: en}
+  ie: {stt: en-IE, tts: en}
+  nz: {stt: en-NZ, tts: en}
+  za: {stt: en-ZA, tts: en}
   # Portuguese variants
-  br: {languages: {stt: pt-BR, tts: pt}}
+  br: {stt: pt-BR, tts: pt}
   # European languages
-  gr: {languages: {stt: el-GR, tts: el}}
-  cz: {languages: {stt: cs-CZ, tts: cs}}
-  dk: {languages: {stt: da-DK, tts: da}}
-  se: {languages: {stt: sv-SE, tts: sv}}
-  no: {languages: {stt: nb-NO, tts: no}}
-  ua: {languages: {stt: uk-UA, tts: uk}}
-  by: {languages: {stt: be-BY, tts: be}}
+  gr: {stt: el-GR, tts: el}
+  cz: {stt: cs-CZ, tts: cs}
+  dk: {stt: da-DK, tts: da}
+  se: {stt: sv-SE, tts: sv}
+  no: {stt: nb-NO, tts: no}
+  ua: {stt: uk-UA, tts: uk}
+  by: {stt: be-BY, tts: be}
   # Far East languages
-  cn: {languages: {stt: zh-CN, tts: zh}}
-  tw: {languages: {stt: zh-TW, tts: zh-TW}}
-  jp: {languages: {stt: ja-JP, tts: ja}}
-  kr: {languages: {stt: ko-KR, tts: ko}}
+  cn: {stt: zh-CN, tts: zh}
+  tw: {stt: zh-TW, tts: zh-TW}
+  jp: {stt: ja-JP, tts: ja}
+  kr: {stt: ko-KR, tts: ko}
   # Semitic
-  eg: {languages: {stt: ar-EG, tts: ar}}
-  sa: {languages: {stt: ar-SA, tts: ar}}
-  ae: {languages: {stt: ar-AE, tts: ar}}
-  ma: {languages: {stt: ar-MA, tts: ar}}
-  il: {languages: {stt: he-IL, tts: iw}}
+  eg: {stt: ar-EG, tts: ar}
+  sa: {stt: ar-SA, tts: ar}
+  ae: {stt: ar-AE, tts: ar}
+  ma: {stt: ar-MA, tts: ar}
+  il: {stt: he-IL, tts: iw}
 
 # XKB keycode to physical position mappings (row, col)
 keycode_positions:

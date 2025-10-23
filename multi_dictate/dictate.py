@@ -238,7 +238,7 @@ class DictationApp:
             gtts_config = (self.cfg.gTTS or {}).copy()
             if gtts_config.get("lang", "auto").lower() == "auto":
                 gtts_config["lang"] = (
-                    kbd_cfg.layouts[self.curr_layout].languages.tts or self.curr_layout
+                    kbd_cfg.layouts[self.curr_layout].tts or self.curr_layout
                 )
                 logger.debug(f"Using TTS language: {gtts_config['lang']}")
 
@@ -317,7 +317,7 @@ class DictationApp:
         self.cur_lang = (self.cfg[f"recognize_{self.recognizer_engine}"].language or "auto").lower()
         if self.cur_lang == "auto":
             self.cur_lang = (
-                kbd_cfg.layouts[self.curr_layout].languages.stt
+                kbd_cfg.layouts[self.curr_layout].stt
                 or f"{self.curr_layout}-{self.curr_layout.upper()}"
             )
 

@@ -59,8 +59,8 @@ colors:
 
         # Mock kbd_cfg with proper structure
         mock_layout = MagicMock()
-        mock_layout.languages.tts = 'en'
-        mock_layout.languages.stt = 'en-US'
+        mock_layout.tts = 'en'
+        mock_layout.stt = 'en-US'
         mock_kbd_cfg.layouts = {'us': mock_layout}
 
         # Mock VAD

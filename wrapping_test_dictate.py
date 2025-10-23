@@ -96,7 +96,7 @@ test_samples = {
     "it": ["Ciao", "città"],
 }
 
-lang_code = kbd_cfg.layouts[kl].languages.tts or kl
+lang_code = kbd_cfg.layouts[kl].tts or kl
 
 # Test typewrite
 if kl in test_samples:
