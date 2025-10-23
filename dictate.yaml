@@ -1,16 +1,16 @@
 keybindings:
   - name: "Toggle speech echo on/off"
     command: echo
-    keys: "<Super>F10"
+    keys: "<Super>F9"
   - name: "Start manual recording"
     command: record
-    keys: "<Super>F11"
+    keys: "<Super>F10"
   - name: "Stop recording"
     command: stop
-    keys: "<Super>F12"
-  - name: "Toggle recording (press to talk)"
+    keys: "<Super>F11"
+  - name: "Toggle recording"
     command: toggle
-    keys: "<Super>Insert"
+    keys: "<Super>F12"
   - name: "Record until silence detected"
     command: record till pause
     keys: "<Shift><Control>s"
