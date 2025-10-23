@@ -8,7 +8,7 @@ import time
 import pyautogui
 import yaml
 from box import Box
-from kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
+from multi_dictate.kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
 
 FIFO_PATH = "/tmp/dictate_test_trigger"
 dictate_proc = None
@@ -21,7 +21,7 @@ def init():
     # Allow X11 connections
     subprocess.run(["xhost", "+"], capture_output=True, check=False)
     dictate_proc = subprocess.Popen(
-        ["python3", "dictate.py", "--no-echo", "--trigger", FIFO_PATH],
+        ["python3", "-m", "multi_dictate.dictate", "--no-echo", "--trigger", FIFO_PATH],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
