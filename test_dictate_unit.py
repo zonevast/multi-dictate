@@ -197,6 +197,7 @@ class TestDictationApp:
         # Mock to simulate stop after a few chunks
         dictate_app.stop_recording_flag = False
         call_count = 0
+
         def read_chunk(*args, **kwargs):
             nonlocal call_count
             call_count += 1
@@ -610,6 +611,7 @@ class TestEdgeCases:
 
         # Force stop after some iterations
         call_count = 0
+
         def side_effect(*args):
             nonlocal call_count
             call_count += 1

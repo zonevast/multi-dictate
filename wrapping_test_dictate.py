@@ -8,7 +8,6 @@ import time
 import pyautogui
 import yaml
 from box import Box
-
 from kbd_utils import for_typewrite, get_current_keyboard_layout, kbd_cfg
 
 FIFO_PATH = "/tmp/dictate_test_trigger"

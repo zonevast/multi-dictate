@@ -46,20 +46,12 @@ from vosk import SetLogLevel
 
 try:
     # When running as part of package
-    from .kbd_utils import (
-        check_dictation_keybindings,
-        for_typewrite,
-        get_current_keyboard_layout,
-        kbd_cfg,
-    )
+    from .kbd_utils import (check_dictation_keybindings, for_typewrite,
+                            get_current_keyboard_layout, kbd_cfg)
 except ImportError:
     # When running directly
-    from kbd_utils import (
-        check_dictation_keybindings,
-        for_typewrite,
-        get_current_keyboard_layout,
-        kbd_cfg,
-    )
+    from kbd_utils import (check_dictation_keybindings, for_typewrite,
+                           get_current_keyboard_layout, kbd_cfg)
 
 SetLogLevel(-1)
 
@@ -106,6 +98,7 @@ class DictationApp:
         self.recognizer = sr.Recognizer()
         self.vad = webrtcvad.Vad()
         self.curr_layout = None
+        self.cur_lang = None
         self.vad.set_mode(self.cfg.vad.aggressiveness or 0)
         vars(self.recognizer).update(self.cfg.Recognizer)
         self._color_style = "light"
@@ -164,14 +157,13 @@ class DictationApp:
                     capture_output=True, text=True
                 )
                 if r.returncode == 0 and 'dark' in r.stdout.lower():
-                        self._color_style = "dark"
+                    self._color_style = "dark"
             except Exception:
                 pass
 
         self._fg_color = self.cfg.colors[self._color_style].fg or 'black'
         logger.debug(self._color_style)
         return self._color_style
-
 
     def calibrate(self):
 
@@ -497,7 +489,7 @@ class DictationApp:
             pyautogui.typewrite(to_type + " ", interval=t)
         except sr.UnknownValueError:
             print("No speech detected")
-            #self._show_error("No speech detected")
+            # self._show_error("No speech detected")
         except sr.RequestError as e:
             print(f"❌ Speech service error: {e}")
             self._show_error("❌ Service error")
@@ -651,7 +643,9 @@ class DictationApp:
 def check_dependencies():
     """Check if required dependencies are available"""
     try:
-        import speech_recognition  # noqa: F401
+        # Check if speech_recognition is already imported
+        if "speech_recognition" not in sys.modules:
+            import speech_recognition  # noqa: F401
 
         return True
     except ImportError as e:
