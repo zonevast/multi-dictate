@@ -171,3 +171,7 @@ python kbd_utils.py
 # Test dictation
 python test_dictate.py
 ```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
