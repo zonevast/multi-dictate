@@ -326,12 +326,14 @@ def check_dictation_keybindings(kb_config=None):
 
     kb_dict = {item["command"]: item for item in kb_config}
     available_commands = list(kb_dict.keys())
+    logger.debug(f"available_commands= {available_commands}")
     bound_commands = set()
 
     dictate_bindings = get_dictate_bindings()
 
     print("\nDictation keybindings:")
     for binding in dictate_bindings:
+        logger.debug(binding)
         key = binding.get("binding", "")
         if not key:
             continue
@@ -347,6 +349,7 @@ def check_dictation_keybindings(kb_config=None):
             print(f"{name:40} {keys:20}")
 
     unbound = set(available_commands) - bound_commands
+    logger.debug(f"unbound={unbound}")
     if unbound:
         print("Adding missing keybindings:")
     for cmd in sorted(unbound):
