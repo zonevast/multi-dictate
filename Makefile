@@ -2,7 +2,7 @@
 
 check:
 	pytest
-	./kbd_utils.py
+	./multi_dictate/kbd_utils.py
 	./wrapping_test_dictate.py
 
 lint:

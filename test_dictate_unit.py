@@ -25,10 +25,10 @@ def mock_dependencies():
          patch('gtts.gTTS') as mock_gtts, \
          patch('pydub.AudioSegment') as mock_audio_segment, \
          patch('vosk.SetLogLevel') as mock_vosk_log, \
-         patch('kbd_utils.check_dictation_keybindings') as mock_check_kb, \
-         patch('kbd_utils.get_current_keyboard_layout') as mock_get_layout, \
-         patch('kbd_utils.for_typewrite') as mock_for_typewrite, \
-         patch('kbd_utils.kbd_cfg') as mock_kbd_cfg, \
+         patch('multi_dictate.kbd_utils.check_dictation_keybindings') as mock_check_kb, \
+         patch('multi_dictate.kbd_utils.get_current_keyboard_layout') as mock_get_layout, \
+         patch('multi_dictate.kbd_utils.for_typewrite') as mock_for_typewrite, \
+         patch('multi_dictate.kbd_utils.kbd_cfg') as mock_kbd_cfg, \
          patch('subprocess.run') as mock_subprocess, \
          patch('os.mkfifo') as mock_mkfifo, \
          patch('os.remove') as mock_remove, \
@@ -54,7 +54,7 @@ colors:
 
         # Configure mocks
         mock_get_layout.return_value = 'us'
-        mock_for_typewrite.return_value = 'test text'
+        mock_for_typewrite.side_effect = lambda layout, text: text  # Pass through text
         mock_exists.return_value = False
 
         # Mock kbd_cfg with proper structure
@@ -111,8 +111,15 @@ colors:
 def dictate_app(mock_dependencies):
     """Create DictationApp instance with mocked dependencies."""
     # Import after mocking
-    sys.modules.pop('dictate', None)
-    import dictate
+    sys.modules.pop('multi_dictate.dictate', None)
+    from multi_dictate import dictate
+
+    # Mock params to avoid None issues
+    mock_params = MagicMock()
+    mock_params.trigger = '/tmp/test_dictate_trigger'
+    mock_params.echo = False
+    dictate.params = mock_params
+
     return dictate.DictationApp()
 
 
@@ -129,7 +136,7 @@ class TestDictationApp:
     def test_init_missing_config(self, mock_dependencies):
         """Test initialization with missing config file."""
         with patch('builtins.open', side_effect=FileNotFoundError):
-            import dictate
+            from multi_dictate import dictate
             app = dictate.DictationApp()
             # With default_box=True, accessing undefined keys returns empty Box, not None
             # The recognizer_engine will default to 'google' in the code
@@ -139,7 +146,7 @@ class TestDictationApp:
         """Test initialization with invalid YAML."""
         with patch('builtins.open', mock_open(read_data='invalid: yaml: content:')):
             with patch('yaml.safe_load', side_effect=Exception("YAML error")):
-                import dictate
+                from multi_dictate import dictate
                 app = dictate.DictationApp()
                 # With default_box=True, accessing undefined keys returns empty Box, not None
                 # The recognizer_engine will default to 'google' in the code
@@ -254,7 +261,7 @@ class TestDictationApp:
             result = dictate_app._process_audio(mock_audio)
 
             assert result == "Hello world"
-            mock_dependencies['typewrite'].assert_called_once_with("test text ", interval=0.05)
+            mock_dependencies['typewrite'].assert_called_once_with("Hello world ", interval=0.05)
 
     def test_process_audio_unknown_value_error(self, dictate_app, mock_dependencies):
         """Test handling UnknownValueError."""
@@ -437,8 +444,11 @@ class TestDictationApp:
         """Test cleanup is idempotent."""
         mock_dependencies['exists'].return_value = True
 
+        # Mock params object
+        mock_params = MagicMock()
+        mock_params.trigger = '/tmp/test'
         # Set up params
-        with patch('dictate.params', MagicMock(trigger='/tmp/test')):
+        with patch('multi_dictate.dictate.params', mock_params):
             dictate_app._cleanup()
             dictate_app._cleanup()  # Second call should do nothing
 
@@ -448,7 +458,10 @@ class TestDictationApp:
         """Test run loop with shutdown."""
         dictate_app.shutdown_flag = True
 
-        with patch('dictate.params', MagicMock(trigger='/tmp/test')):
+        # Mock params object
+        mock_params = MagicMock()
+        mock_params.trigger = '/tmp/test'
+        with patch('multi_dictate.dictate.params', mock_params):
             dictate_app.run()
 
             mock_dependencies['mkfifo'].assert_called_once()
@@ -495,12 +508,12 @@ class TestMainFunction:
         test_args = ['dictate.py', '--calibrate']
 
         with patch('sys.argv', test_args):
-            with patch('dictate.DictationApp') as mock_app_class:
+            with patch('multi_dictate.dictate.DictationApp') as mock_app_class:
                 mock_app = MagicMock()
                 mock_app_class.return_value = mock_app
 
                 with pytest.raises(SystemExit) as exc_info:
-                    import dictate
+                    from multi_dictate import dictate
                     dictate.main()
 
                 assert exc_info.value.code == 0
@@ -511,11 +524,11 @@ class TestMainFunction:
         test_args = ['dictate.py', '--trigger', '/tmp/custom_trigger']
 
         with patch('sys.argv', test_args):
-            with patch('dictate.DictationApp') as mock_app_class:
+            with patch('multi_dictate.dictate.DictationApp') as mock_app_class:
                 mock_app = MagicMock()
                 mock_app_class.return_value = mock_app
 
-                import dictate
+                from multi_dictate import dictate
                 dictate.main()
 
                 mock_app.run.assert_called_once()
@@ -545,13 +558,13 @@ class TestMainFunction:
         test_args = ['dictate.py']
 
         with patch('sys.argv', test_args):
-            with patch('dictate.DictationApp') as mock_app_class:
+            with patch('multi_dictate.dictate.DictationApp') as mock_app_class:
                 mock_app = MagicMock()
                 mock_app.run.side_effect = Exception("Runtime error")
                 mock_app_class.return_value = mock_app
 
                 with pytest.raises(SystemExit) as exc_info:
-                    import dictate
+                    from multi_dictate import dictate
                     dictate.main()
 
                 assert exc_info.value.code == 1
@@ -562,7 +575,7 @@ class TestCheckDependencies:
 
     def test_dependencies_available(self):
         """Test when all dependencies are available."""
-        import dictate
+        from multi_dictate import dictate
         assert dictate.check_dependencies() is True
 
     def test_dependencies_missing(self):
