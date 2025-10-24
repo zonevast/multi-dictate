@@ -36,7 +36,7 @@ if [ -f /etc/fedora-release ]; then
         python3-tkinter \
         python3-devel \
         pulseaudio-utils
-        
+
 elif [ -f /etc/debian_version ]; then
     echo "Detected distribution: Debian/Ubuntu"
     echo "Installing system packages..."
@@ -47,7 +47,7 @@ elif [ -f /etc/debian_version ]; then
         python3-tk \
         python3-dev \
         pulseaudio-utils
-        
+
 elif [ -f /etc/arch-release ]; then
     echo "Detected distribution: Arch"
     echo "Installing system packages..."

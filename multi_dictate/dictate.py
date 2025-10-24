@@ -43,7 +43,6 @@ from gtts import gTTS
 from pydub import AudioSegment
 from vosk import SetLogLevel
 
-
 try:
     # When running as part of package
     from .kbd_utils import (check_dictation_keybindings, for_typewrite,
