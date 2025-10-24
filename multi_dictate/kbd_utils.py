@@ -324,10 +324,11 @@ def check_dictation_keybindings(kb_config=None):
     if not kb_config:
         kb_config = []
 
-    kb_dict = {item["command"]: item for item in kb_config}
-    available_commands = list(kb_dict.keys())
-    logger.debug(f"available_commands= {available_commands}")
-    bound_commands = set()
+    # Create dict by name instead of command
+    kb_dict = {item["name"]: item for item in kb_config}
+    available_names = set(kb_dict.keys())
+    logger.debug(f"available_names= {available_names}")
+    bound_names = set()
 
     dictate_bindings = get_dictate_bindings()
 
@@ -341,22 +342,20 @@ def check_dictation_keybindings(kb_config=None):
         name = binding.get("name", "Unnamed")
         keys = binding.get("binding", "")
 
-        m = re.search(r'echo\s+"([^"]+)"\s*>>', command) or re.search(
-            r"echo\s+([^>]+?)\s*>>", command
-        )
-        if m:
-            bound_commands.add(m.group(1).strip())
-            print(f"{name:40} {keys:20}")
+        # Check if this name is in our config
+        if name in available_names:
+            bound_names.add(name)
+        print(f"{name:40} {keys:20}")
 
-    unbound = set(available_commands) - bound_commands
+    unbound = available_names - bound_names
     logger.debug(f"unbound={unbound}")
     if unbound:
         print("Adding missing keybindings:")
-    for cmd in sorted(unbound):
-        kb_info = kb_dict.get(cmd, {})
-        name = kb_info.get("name", "")
+    for name in sorted(unbound):
+        kb_info = kb_dict.get(name, {})
+        cmd = kb_info.get("command", "")
         keys = kb_info.get("keys", "")
-        if keys:
+        if keys and cmd:
             if add_dictation_keybinding(cmd, name, keys):
                 print(f"{name:40} {keys:20}")
 
