@@ -19,11 +19,11 @@ import speech_recognition as sr
 @pytest.fixture
 def mock_dependencies():
     """Mock all external dependencies."""
-    with patch('pasimple.PaSimple') as mock_pasimple, \
+    with patch('multi_dictate.dictate.pasimple.PaSimple') as mock_pasimple, \
          patch('pyautogui.typewrite') as mock_typewrite, \
          patch('webrtcvad.Vad') as mock_vad, \
-         patch('gtts.gTTS') as mock_gtts, \
-         patch('pydub.AudioSegment') as mock_audio_segment, \
+         patch('multi_dictate.dictate.gTTS') as mock_gtts, \
+         patch('multi_dictate.dictate.AudioSegment') as mock_audio_segment, \
          patch('vosk.SetLogLevel') as mock_vosk_log, \
          patch('multi_dictate.kbd_utils.check_dictation_keybindings') as mock_check_kb, \
          patch('multi_dictate.kbd_utils.get_current_keyboard_layout') as mock_get_layout, \
