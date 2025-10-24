@@ -6,17 +6,15 @@ and types it into any application while properly handling keyboard layout conver
 
 ## Features
 
-- Multi-language voice-to-text dictation triggered via FIFO commands
+- Automatic keybinding
 - Multi-language support with automatic language detection based on keyboard layout
-- Proper text input for non-QWERTY layouts (AZERTY, QWERTZ, etc.)
-- Fast clipboard-based text insertion (much faster than typing)
 - Text-to-speech echo of recognized text
 - Visual status indicator during recording
 
 ## System Requirements
 
 ### Operating System
-- Linux (tested on Fedora, Ubuntu, Debian)
+- Linux (tested on Fedora)
 - X11 or Wayland display server
 
 ## Installation
@@ -46,34 +44,19 @@ To completely remove the application:
 ### Interfaces
 
 - [Custom keyboard bindings](https://wiki.ubuntu.com/Keybindings)
+- FIFO for keybindings
 - [`pasimple`](https://github.com/henrikschnor/pasimple) - PulseAudio interface
 - [`webrtcvad`](https://github.com/wiseman/py-webrtcvad) - Voice Activity Detection
 - [`speech_recognition`](https://github.com/Uberi/speech_recognition),  [Google Speech Recognition](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_googleaudio_data-audiodata-key-unionstr-none--none-language-str--en-us--pfilter-union0-1-show_all-bool--false---unionstr-dictstr-any)
 - [`gtts`](https://gtts.readthedocs.io/) - Google Text-to-Speech for echo mode
 - [`tkinter`](https://docs.python.org/3/library/tkinter.html) - for Visual status indicator
 - [`pyautogui.typewrite`](https://pyautogui.readthedocs.io/en/latest/keyboard.html) - for final text output into keyboard buffer
+ - Proper text conversion for non-QWERTY layouts (AZERTY, QWERTZ, etc.)
 - Remote desktop access
 
 Optional packages:
 - `python-Levenshtein` - For calibration mode only (`--calibrate`)
 - [`vosk`](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_voskaudio_data-audiodata--verbose-bool--false---unionstr-dictstr-str) - For offline speech recognition
-
-## Configuration
-
-Configure custom keybindings to activate the dictation.
-
-Check with
-```bash
-dconf dump /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/
-```
-
-### Language Settings
-
-Edit `dictate.yaml` to configure:
-- Recognition language preferences
-- Text-to-speech settings
-- Voice activity detection parameters
-
 
 ## Usage
 
@@ -106,26 +89,50 @@ Once installed with `./install.sh`, the application is installed as a Python pac
    systemctl --user disable dictate.service
    ```
 
-### Using the Dictation Feature
+### Using the dictation
 
 1. Focus cursor on any input field or text editor
 2. Use one of the following keybindings:
-   - **Super+F11**: Start manual recording (press Super+F12 to stop)
-   - **Super+Insert**: Toggle recording (press to talk)
-   - **Ctrl+Shift+S**: Record until silence detected (automatic stop)
-   - **Super+F10**: Toggle speech echo on/off
+   - **Super+F9**: Toggle speech echo on/off
+   - **Super+F11**: Start manual recording
+   - **Super+F11**: Stop manual recording
+   - **Super+F12**: Toggle recording
+   - **Ctrl+Shift+S**: Record until silence detected
 3. Speak clearly into your microphone
 4. The recognized text will be typed at your cursor position
 
-### Configuration
+## Configuration
 
-The application uses configuration files stored in:
-- `~/.config/multi-dictate/dictate.yaml` - Main configuration
-- `~/.config/multi-dictate/keyboard.yaml` - Keyboard layout mappings
-
-
+Edit `~/.config/multi-dictate/dictate.yaml` to configure:
+- Configure custom keybindings to activate the dictation
+- Recognition language preferences
+- Text-to-speech settings
+- Voice activity detection parameters
 
 ## Troubleshooting
+
+Check keybindings
+
+```bash
+dconf read /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings
+
+dconf dump /org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/
+```
+
+Check "Remote intergation" - orange icon on the top of the screen
+
+### Audio Issues
+
+1. Check PulseAudio is running:
+   ```bash
+   pactl info
+   ```
+
+2. Test microphone:
+   ```bash
+   parecord test.wav
+   paplay test.wav
+   ```
 
 ### Non-QWERTY Layout Issues
 
@@ -148,31 +155,24 @@ If text is typed incorrectly on non-QWERTY layouts:
 
 4. On Wayland, you may see warnings about Xwayland - these can be safely ignored.
 
-### Audio Issues
-
-1. Check PulseAudio is running:
-   ```bash
-   pactl info
-   ```
-
-2. Test microphone:
-   ```bash
-   parecord test.wav
-   paplay test.wav
-   ```
-
 ## Development
+
+
+Run from source directory:
+
+```bash
+./run_dictate.py
+```
 
 ### Testing
 
 Run the built-in tests:
 ```bash
-# Test keyboard layout conversions
-python kbd_utils.py
-
-# Test dictation
-python test_dictate.py
+make check
 ```
+
+### Future features
+- Fast clipboard-based text insertion (much faster than typing)
 
 ## License
 
