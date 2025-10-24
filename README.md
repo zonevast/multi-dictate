@@ -1,6 +1,8 @@
 # Multi-Dictate
 
-A voice dictation application for Linux that supports multiple keyboard layouts, including non-QWERTY layouts. The tool captures voice input, converts it to text using speech recognition, and types it into any application while properly handling keyboard layout conversions.
+A voice dictation application for Linux that supports multiple languages.
+The tool captures voice input, converts it to text using speech recognition,
+and types it into any application while properly handling keyboard layout conversions.
 
 ## Features
 
