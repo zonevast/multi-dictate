@@ -14,7 +14,7 @@ Visual status indicator during recording
 ## System Requirements
 
 ### Operating System
-Linux (tested on Fedora)\
+Linux (tested on Fedora 42)\
 X11 or Wayland display server
 
 ## Installation
@@ -40,7 +40,6 @@ To completely remove the application:
 ```bash
 ./uninstall.sh
 ```
-
 
 ## Usage
 
