@@ -6,24 +6,24 @@ and types it into any application while properly handling keyboard layout conver
 
 ## Features
 
-- Automatic keybinding
-- Multi-language support with automatic language detection based on keyboard layout
-- Text-to-speech echo of recognized text
-- Visual status indicator during recording
+Automatic keybinding\
+Multi-language support with automatic language detection based on keyboard layout\
+Text-to-speech echo of recognized text\
+Visual status indicator during recording
 
 ## System Requirements
 
 ### Operating System
-- Linux (tested on Fedora)
-- X11 or Wayland display server
+Linux (tested on Fedora)\
+X11 or Wayland display server
 
 ## Installation
 
 The installation script will:
-- Install system dependencies
-- Install Python dependencies
-- Set up the application as a system service
-- Enable automatic startup on boot
+Install system dependencies\
+Install Python dependencies\
+Set up the application as a system service\
+Enable automatic startup on boot
 
 ```bash
 # Clone the repository (if not already done)
@@ -77,38 +77,38 @@ Once installed with `./install.sh`, the application is installed as a Python pac
 
 1. Focus cursor on any input field or text editor
 2. Use one of the following keybindings:
-   - **Super+F9**: Toggle speech echo on/off
-   - **Super+F10**: Start manual recording
-   - **Super+F11**: Stop manual recording
-   - **Super+F12**: Toggle recording
-   - **Ctrl+Shift+S**: Record until silence detected
+   **Super+F9**: Toggle speech echo on/off\
+   **Super+F10**: Start manual recording\
+   **Super+F11**: Stop manual recording\
+   **Super+F12**: Toggle recording\
+   **Ctrl+Shift+S**: Record until silence detected
 3. Speak clearly into your microphone
 4. The recognized text will be typed at your cursor position
 
 ## Configuration
 
 Edit `~/.config/multi-dictate/dictate.yaml` to configure:
-- Configure custom keybindings to activate the dictation
-- Recognition language preferences
-- Text-to-speech settings
-- Voice activity detection parameters
+Configure custom keybindings to activate the dictation\
+Recognition language preferences\
+Text-to-speech settings\
+Voice activity detection parameters
 
 ## Interfaces
 
-- [Custom keyboard bindings](https://wiki.ubuntu.com/Keybindings)
-- FIFO for keybindings
-- [`pasimple`](https://github.com/henrikschnor/pasimple) - PulseAudio interface
-- [`webrtcvad`](https://github.com/wiseman/py-webrtcvad) - Voice Activity Detection
-- [`speech_recognition`](https://github.com/Uberi/speech_recognition),  [Google Speech Recognition](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_googleaudio_data-audiodata-key-unionstr-none--none-language-str--en-us--pfilter-union0-1-show_all-bool--false---unionstr-dictstr-any)
-- [`gtts`](https://gtts.readthedocs.io/) - Google Text-to-Speech for echo mode
-- [`tkinter`](https://docs.python.org/3/library/tkinter.html) - for Visual status indicator
-- [`pyautogui.typewrite`](https://pyautogui.readthedocs.io/en/latest/keyboard.html) - for final text output into keyboard buffer
- - Proper text conversion for non-QWERTY layouts (AZERTY, QWERTZ, etc.)
-- Remote desktop access
+[Custom keyboard bindings](https://wiki.ubuntu.com/Keybindings)\
+FIFO for keybindings\
+[`pasimple`](https://github.com/henrikschnor/pasimple) - PulseAudio interface\
+[`webrtcvad`](https://github.com/wiseman/py-webrtcvad) - Voice Activity Detection\
+[`speech_recognition`](https://github.com/Uberi/speech_recognition),  [Google Speech Recognition](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_googleaudio_data-audiodata-key-unionstr-none--none-language-str--en-us--pfilter-union0-1-show_all-bool--false---unionstr-dictstr-any)\
+[`gtts`](https://gtts.readthedocs.io/) - Google Text-to-Speech for echo mode\
+[`tkinter`](https://docs.python.org/3/library/tkinter.html) - for Visual status indicator\
+[`pyautogui.typewrite`](https://pyautogui.readthedocs.io/en/latest/keyboard.html) - for final text output into keyboard buffer\
+ Proper text conversion for non-QWERTY layouts (AZERTY, QWERTZ, etc.)\
+Remote desktop access
 
 Optional packages:
-- `python-Levenshtein` - For calibration mode only (`--calibrate`)
-- [`vosk`](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_voskaudio_data-audiodata--verbose-bool--false---unionstr-dictstr-str) - For offline speech recognition
+`python-Levenshtein` - For calibration mode only (`--calibrate`)\
+[`vosk`](https://github.com/Uberi/speech_recognition/blob/master/reference/library-reference.rst#recognizer_instancerecognize_voskaudio_data-audiodata--verbose-bool--false---unionstr-dictstr-str) - For offline speech recognition
 
 ## Troubleshooting
 
@@ -173,7 +173,7 @@ make check
 ```
 
 ### Future features
-- Fast clipboard-based text insertion (much faster than typing)
+Fast clipboard-based text insertion (much faster than typing)
 
 ## License
 
