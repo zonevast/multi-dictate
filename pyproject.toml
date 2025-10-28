@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Costa Shulyupin", email = "constantine.shulyupin@gmail.com"},
 ]
 keywords = ["voice", "dictation", "speech", "recognition", "linux", "multilingual"]
 classifiers = [
@@ -31,9 +31,9 @@ dynamic = ["dependencies"]
 multi-dictate = "multi_dictate.dictate:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/multi-dictate"
-Repository = "https://github.com/yourusername/multi-dictate"
-Issues = "https://github.com/yourusername/multi-dictate/issues"
+Homepage = "https://github.com/makelinux/multi-dictate"
+Repository = "https://github.com/makelinux/multi-dictate"
+Issues = "https://github.com/makelinux/multi-dictate/issues"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

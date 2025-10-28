@@ -16,12 +16,12 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="multi-dictate",
     version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Costa Shulyupin",
+    author_email="constantine.shulyupin@gmail.com",
     description="A multi-language voice dictation application for Linux",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/multi-dictate",
+    url="https://github.com/makelinux/multi-dictate",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
