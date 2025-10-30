@@ -47,7 +47,12 @@ import yaml
 from box import Box
 from gtts import gTTS
 from pydub import AudioSegment
-from vosk import SetLogLevel
+
+try:
+    from vosk import SetLogLevel
+    VOSK_AVAILABLE = True
+except ImportError:
+    VOSK_AVAILABLE = False
 
 try:
     # When running as part of package
@@ -58,7 +63,9 @@ except ImportError:
     from kbd_utils import (check_dictation_keybindings, for_typewrite,
                            get_current_keyboard_layout, kbd_cfg)
 
-SetLogLevel(-1)
+# Only set log level if vosk is available
+if VOSK_AVAILABLE:
+    SetLogLevel(-1)
 
 FORMAT = pasimple.PA_SAMPLE_S16LE
 SAMPLE_WIDTH = pasimple.format2width(FORMAT)
@@ -114,11 +121,14 @@ class DictationApp:
                 "recognize": self.recognizer.recognize_google,
                 "parser": lambda result: result,
             },
-            "vosk": {
+        }
+
+        # Only add vosk if available
+        if VOSK_AVAILABLE:
+            self.recognizer_engines["vosk"] = {
                 "recognize": self.recognizer.recognize_vosk,
                 "parser": lambda result: json.loads(result).get("text", ""),
-            },
-        }
+            }
 
         self.gui_queue = []
         self.command = None
