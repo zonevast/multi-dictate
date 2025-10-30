@@ -13,8 +13,10 @@ RestartSec=5
 # Environment variables for proper display and audio
 Environment="DISPLAY=:0"
 Environment="PULSE_RUNTIME_PATH=/run/user/%U/pulse"
+# Import display environment from user session
+PassEnvironment=DISPLAY XAUTHORITY WAYLAND_DISPLAY
 # Ensure proper permissions for GUI operations
-Environment="XAUTHORITY=%h/.Xauthority"
+# Note: XAUTHORITY will be inherited from user session via PassEnvironment
 # Add local bin to PATH for user-installed packages
 Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
 # Log output

@@ -32,6 +32,12 @@ import warnings
 from io import BytesIO
 
 import pasimple
+
+try:
+    subprocess.run(['xhost', '+local:'], capture_output=True, check=False)
+except Exception:
+    pass
+
 import pyautogui
 import speech_recognition as sr
 
