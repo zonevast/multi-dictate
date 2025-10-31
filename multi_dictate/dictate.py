@@ -591,6 +591,7 @@ class DictationApp:
         status = "enabled" if params.echo else "disabled"
         print(f"Speech echo {status}")
         self.show_status_window(f"Echo {status}", "echo")
+        threading.Timer(1.0, self.hide_status_window).start()
 
     def input_command(self, fifo):
         """Read and process commands from the FIFO pipe."""
