@@ -421,8 +421,9 @@ class DictationApp:
                     x = primary_monitor.x + (primary_monitor.width - width) // 2
                     y = primary_monitor.y + (primary_monitor.height - height) // 2
                     self.status_window.geometry(f"{width}x{height}+{x}+{y}")
-                except Exception:
-                    self.status_window.geometry(f"{width}x{height}+300+10")
+                except Exception as e:
+                    logger.error(f"Error during recording: {e}")
+                    self.status_window.geometry(f"{width}x{height}+860+490")
 
                 self.status_window.configure(bg=bg_color)
 

@@ -13,6 +13,7 @@ pydub>=0.25.1
 python-box>=7.0.0
 # python-Levenshtein>=0.20.0  # Only needed for --calibrate mode
 PyYAML>=6.0
+screeninfo
 SpeechRecognition>=3.10.0
 # vosk>=0.3.45                 # For offline speech recognition
 webrtcvad>=2.0.10
