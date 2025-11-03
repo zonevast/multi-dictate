@@ -24,13 +24,18 @@ common_packages=(
     sox
     xdotool
     gsettings-desktop-schemas
-    pulseaudio
 )
 
-# Detect distribution and install packages
 if [ -f /etc/fedora-release ]; then
     echo "Detected distribution: Fedora"
-    echo "Installing system packages..."
+
+    if rpm -q pipewire &>/dev/null; then
+        echo "PipeWire detected - installing PulseAudio compatibility layer..."
+        sudo dnf install -y pipewire-pulseaudio --allowerasing
+    else
+        echo "Installing with PulseAudio..."
+        sudo dnf install -y pulseaudio
+    fi
     sudo dnf install -y \
         "${common_packages[@]}" \
         python3-tkinter \
@@ -39,8 +44,16 @@ if [ -f /etc/fedora-release ]; then
 
 elif [ -f /etc/debian_version ]; then
     echo "Detected distribution: Debian/Ubuntu"
-    echo "Installing system packages..."
     sudo apt update
+
+    # Check if using PipeWire or PulseAudio
+    if dpkg -l pipewire &>/dev/null 2>&1; then
+        echo "PipeWire detected - installing with PulseAudio compatibility..."
+        sudo apt install -y pipewire-pulse
+    else
+        echo "Installing with PulseAudio..."
+        sudo apt install -y pulseaudio
+    fi
     sudo apt install -y \
         "${common_packages[@]}" \
         x11-xkb-utils \
@@ -51,17 +64,29 @@ elif [ -f /etc/debian_version ]; then
 elif [ -f /etc/arch-release ]; then
     echo "Detected distribution: Arch"
     echo "Installing system packages..."
+
+    # Arch typically uses PipeWire by default in newer installations
+    if pacman -Q pipewire &>/dev/null 2>&1; then
+        echo "PipeWire detected - installing with PulseAudio compatibility..."
+        sudo pacman -S --needed pipewire-pulse
+    else
+        echo "Installing with PulseAudio..."
+        sudo pacman -S --needed pulseaudio
+    fi
     sudo pacman -S --needed \
         "${common_packages[@]}" \
         xorg-xkbcomp \
         xorg-setxkbmap \
         tk \
-        python
+        python \
+        pulseaudio-utils \
+        pipewire-pulse
 
 else
     echo "Warning: Unknown distribution. Please install dependencies manually."
     echo "Common packages needed: ${common_packages[@]}"
-    echo "Plus XKB tools, Python GUI toolkit, and PulseAudio utilities for your distribution."
+    echo "Plus XKB tools, Python GUI toolkit, and audio utilities for your distribution."
+    echo "If using PipeWire, install pipewire-pulse/pipewire-pulseaudio instead of pulseaudio."
 fi
 
 # Install Python dependencies
@@ -75,7 +100,8 @@ if ! command -v setxkbmap &> /dev/null || ! command -v xkbcomp &> /dev/null; the
 fi
 
 if ! command -v pactl &> /dev/null; then
-    echo "WARNING: PulseAudio missing - audio recording will not work"
+    echo "WARNING: Audio utilities missing - audio recording will not work"
+    echo "Please install pulseaudio-utils or pipewire-pulse for your distribution"
 fi
 
 if ! python3 -c "from kbd_utils import get_current_keyboard_layout" 2>/dev/null; then
@@ -104,11 +130,11 @@ echo "Installing multi-dictate package..."
 pip install --user -e .
 
 # Install desktop entry for GUI launchers
-if [ -f dictate.desktop ]; then
+if [ -f multi-dictate.desktop ]; then
     echo "Installing desktop entry..."
     DESKTOP_DIR="$HOME/.local/share/applications"
     mkdir -p "$DESKTOP_DIR"
-    sed "s|Exec=%h/.local/bin/multi-dictate|Exec=$HOME/.local/bin/multi-dictate|g" dictate.desktop > "$DESKTOP_DIR/multi-dictate.desktop"
+    sed "s|Exec=%h/.local/bin/multi-dictate|Exec=$HOME/.local/bin/multi-dictate|g" multi-dictate.desktop > "$DESKTOP_DIR/multi-dictate.desktop"
 fi
 
 # Set up systemd service
