@@ -14,9 +14,35 @@ keybindings:
   - name: "Record until silence detected"
     command: record till pause
     keys: "<Shift><Control>s"
+  - name: "AI-enhanced recording (with clipboard context)"
+    command: ai_record
+    keys: "<Super>F8"
+  - name: "AI-enhanced recording (with clipboard, shift+enter newlines)"
+    command: ai_record_shift
+    keys: "<Super><Shift>F8"
+  - name: "AI-enhanced recording (clean, no clipboard)"
+    command: ai_record_clean
+    keys: "<Super>F7"
+  - name: "AI-enhanced recording (clean, shift+enter newlines)"
+    command: ai_record_clean_shift
+    keys: "<Super><Shift>F7"
 general:
   recognizer_engine: google
   typewrite_interval: 0.04
+
+  # AI Enhancement Provider
+  # Options: "auto" (smart, learns best), "openai", "gemini", "none"
+  ai_provider: "auto"  # SMART MODE - Auto-detects and remembers working API!
+
+  # OpenAI Configuration (Better quotas, higher quality)
+  openai_api_key: "YOUR_OPENAI_API_KEY_HERE"
+  openai_model: "gpt-4o-mini"  # Options: gpt-4o-mini (fast/cheap), gpt-4o (best quality)
+
+  # Gemini Configuration (Fallback option)
+  gemini_api_keys:
+    - "YOUR_GEMINI_API_KEY_1_HERE"  # Primary key
+    - "YOUR_GEMINI_API_KEY_2_HERE"  # Secondary key
+  gemini_model: "flash"  # Options: flash, flash-25, pro, thinking
 # Status window colors for light and dark styles
 colors:
   light:

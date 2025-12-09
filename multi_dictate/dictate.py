@@ -58,10 +58,16 @@ try:
     # When running as part of package
     from .kbd_utils import (check_dictation_keybindings, for_typewrite,
                             get_current_keyboard_layout, kbd_cfg)
+    from .gemini_processor import GeminiProcessor
+    from .openai_processor import OpenAIProcessor
+    from .smart_ai_router import SmartAIRouter
 except ImportError:
     # When running directly
     from kbd_utils import (check_dictation_keybindings, for_typewrite,
                            get_current_keyboard_layout, kbd_cfg)
+    from gemini_processor import GeminiProcessor
+    from openai_processor import OpenAIProcessor
+    from smart_ai_router import SmartAIRouter
 
 # Only set log level if vosk is available
 if VOSK_AVAILABLE:
@@ -147,9 +153,54 @@ class DictationApp:
                 "Start continuous recording till audio pause",
             ),
             "echo": (self._toggle_speech_echo, "Toggle speech echo on/off"),
+            "ai_record": (self.start_ai_enhanced_recording, "AI recording with clipboard"),
+            "ai_record_shift": (lambda: self.start_ai_enhanced_recording(use_shift_enter=True), "AI recording with clipboard (shift+enter)"),
+            "ai_record_clean": (self.start_ai_clean_recording, "AI recording without clipboard"),
+            "ai_record_clean_shift": (lambda: self.start_ai_clean_recording(use_shift_enter=True), "AI recording without clipboard (shift+enter)"),
         }
 
         self.tts_lock = threading.Lock()
+
+        # Initialize Smart AI Router (auto-detects and remembers working API)
+        ai_provider = self.cfg.general.get('ai_provider', 'auto').lower()
+
+        if ai_provider == 'auto' or ai_provider == 'smart':
+            # Use Smart Router - automatically finds and remembers working API
+            self.ai_processor = SmartAIRouter(self.cfg)
+            logger.info("🧠 Using Smart AI Router (auto-detects best API)")
+        elif ai_provider == 'openai':
+            # Force OpenAI only
+            openai_key = self.cfg.general.get('openai_api_key')
+            if openai_key:
+                openai_model = self.cfg.general.get('openai_model', 'gpt-4o-mini')
+                self.ai_processor = OpenAIProcessor(openai_key, openai_model)
+                logger.info(f"✅ Using OpenAI processor with {openai_model}")
+            else:
+                logger.warning("⚠️  OpenAI selected but no API key configured")
+                self.ai_processor = None
+        elif ai_provider == 'gemini':
+            # Force Gemini only
+            if hasattr(self.cfg.general, 'gemini_api_keys'):
+                gemini_api_keys = self.cfg.general.gemini_api_keys
+            elif hasattr(self.cfg.general, 'gemini_api_key'):
+                gemini_api_keys = [self.cfg.general.gemini_api_key]
+            else:
+                gemini_api_keys = None
+
+            if gemini_api_keys:
+                gemini_model = self.cfg.general.gemini_model or "flash"
+                self.ai_processor = GeminiProcessor(gemini_api_keys, gemini_model)
+                logger.info(f"✅ Using Gemini processor with {gemini_model}")
+            else:
+                logger.warning("⚠️  Gemini selected but no API keys configured")
+                self.ai_processor = None
+        else:
+            # No AI processing
+            self.ai_processor = None
+            logger.info("ℹ️  AI processing disabled")
+
+        # Keep backward compatibility
+        self.gemini_processor = self.ai_processor
 
     def color_style(self):
         """Detect system color style."""
@@ -481,6 +532,151 @@ class DictationApp:
                 self.hide_status_window()
 
         threading.Thread(target=record_and_process, daemon=True).start()
+
+    def start_ai_enhanced_recording(self, use_shift_enter=False):
+        """Toggle AI-enhanced recording with Gemini processing"""
+        if not self.gemini_processor:
+            print("❌ Gemini API key not configured")
+            self._show_error("❌ No API key")
+            return
+
+        # Toggle behavior: if recording, stop it
+        if self.recording_active:
+            print("Stopping AI recording")
+            self.stop_recording_flag = True
+            return
+
+        self.recording_active = True
+
+        def ai_record_and_process():
+            try:
+                data = self.record_audio(60)
+                if not data or len(data) < 1000:
+                    print("No audio recorded")
+                    return
+
+                self.show_status_window("AI Processing 🧠", "processing")
+                audio = self._convert_raw_audio_to_sr_format(data)
+
+                # Get recognized text
+                raw_text = self._recognize(audio)
+                if raw_text:
+                    logger.info(f"Raw text: {raw_text}")
+
+                    # Get clipboard content for context
+                    clipboard_context = None
+                    try:
+                        import subprocess
+                        result = subprocess.run(['xclip', '-selection', 'clipboard', '-o'],
+                                              capture_output=True, text=True, timeout=2)
+                        if result.returncode == 0 and result.stdout.strip():
+                            clipboard_context = result.stdout.strip()
+                            logger.info(f"Clipboard context: {clipboard_context[:100]}...")
+                    except Exception as e:
+                        logger.debug(f"Could not get clipboard: {e}")
+
+                    # Process through Gemini with clipboard context
+                    enhanced_text = self.gemini_processor.process_dictation(raw_text, clipboard_context)
+                    logger.info(f"Enhanced text: {enhanced_text}")
+
+                    self.hide_status_window()
+
+                    # Type the enhanced text - handle newlines
+                    t = self.cfg.general.typewrite_interval or 0.05
+                    lines = enhanced_text.split('\n')
+                    for i, line in enumerate(lines):
+                        if line.strip():
+                            to_type = for_typewrite(self.curr_layout, line)
+                            pyautogui.typewrite(to_type, interval=t)
+                        if i < len(lines) - 1 and lines[i+1].strip():
+                            if use_shift_enter:
+                                pyautogui.hotkey('shift', 'enter')
+                            else:
+                                pyautogui.typewrite('\\', interval=t)
+                                pyautogui.press('enter')
+                    pyautogui.typewrite(' ', interval=t)
+
+                    if params.echo:
+                        self.speak_text(enhanced_text)
+                else:
+                    self.hide_status_window()
+
+            except sr.UnknownValueError:
+                print("No speech detected")
+            except Exception as e:
+                logger.error(f"Error during AI recording: {e}")
+                logger.debug(traceback.format_exc())
+                self._show_error("AI processing error")
+            finally:
+                self.recording_active = False
+                self.hide_status_window()
+
+        threading.Thread(target=ai_record_and_process, daemon=True).start()
+
+    def start_ai_clean_recording(self, use_shift_enter=False):
+        """AI-enhanced recording WITHOUT clipboard context"""
+        if not self.gemini_processor:
+            print("❌ Gemini API key not configured")
+            self._show_error("❌ No API key")
+            return
+
+        if self.recording_active:
+            print("Stopping AI recording")
+            self.stop_recording_flag = True
+            return
+
+        self.recording_active = True
+
+        def ai_clean_record_and_process():
+            try:
+                data = self.record_audio(60)
+                if not data or len(data) < 1000:
+                    print("No audio recorded")
+                    return
+
+                self.show_status_window("AI Processing 🧠", "processing")
+                audio = self._convert_raw_audio_to_sr_format(data)
+
+                raw_text = self._recognize(audio)
+                if raw_text:
+                    logger.info(f"Raw text: {raw_text}")
+
+                    # Process through Gemini WITHOUT clipboard context
+                    enhanced_text = self.gemini_processor.process_dictation(raw_text, None)
+                    logger.info(f"Enhanced text: {enhanced_text}")
+
+                    self.hide_status_window()
+
+                    t = self.cfg.general.typewrite_interval or 0.05
+                    lines = enhanced_text.split('\n')
+                    for i, line in enumerate(lines):
+                        if line.strip():
+                            to_type = for_typewrite(self.curr_layout, line)
+                            pyautogui.typewrite(to_type, interval=t)
+                        if i < len(lines) - 1 and lines[i+1].strip():
+                            if use_shift_enter:
+                                pyautogui.hotkey('shift', 'enter')
+                            else:
+                                pyautogui.typewrite('\\', interval=t)
+                                pyautogui.press('enter')
+                    pyautogui.typewrite(' ', interval=t)
+
+                    if params.echo:
+                        self.speak_text(enhanced_text)
+                else:
+                    self.hide_status_window()
+
+            except sr.UnknownValueError:
+                print("No speech detected")
+            except Exception as e:
+                logger.error(f"Error during AI clean recording: {e}")
+                logger.debug(traceback.format_exc())
+                self._show_error("AI processing error")
+            finally:
+                self.recording_active = False
+                self.hide_status_window()
+
+        threading.Thread(target=ai_clean_record_and_process, daemon=True).start()
 
     def _recognize(self, audio):
         engine = self.recognizer_engines.get(self.recognizer_engine)

@@ -5,3 +5,16 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Configuration files with API keys
+dictate.yaml
+
+# Python egg info
+*.egg-info/
+multi_dictate.egg-info/
+
+# Test files
+test_*.py
+
+# Temporary files
+=2.28.0
