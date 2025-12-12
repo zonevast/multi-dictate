@@ -14,16 +14,16 @@ keybindings:
   - name: "Record until silence detected"
     command: record till pause
     keys: "<Shift><Control>s"
-  - name: "AI-enhanced recording (with clipboard context)"
+  - name: "AI Enhanced Recording (with clipboard context)"
     command: ai_record
     keys: "<Super>F8"
-  - name: "AI-enhanced recording (with clipboard, shift+enter newlines)"
+  - name: "AI Enhanced Recording (with clipboard, shift+enter newlines)"
     command: ai_record_shift
     keys: "<Super><Shift>F8"
-  - name: "AI-enhanced recording (clean, no clipboard)"
+  - name: "AI Clean Recording (without clipboard context)"
     command: ai_record_clean
     keys: "<Super>F7"
-  - name: "AI-enhanced recording (clean, shift+enter newlines)"
+  - name: "AI Clean Recording (shift+enter newlines)"
     command: ai_record_clean_shift
     keys: "<Super><Shift>F7"
 general:
@@ -31,18 +31,23 @@ general:
   typewrite_interval: 0.04
 
   # AI Enhancement Provider
-  # Options: "auto" (smart, learns best), "openai", "gemini", "none"
+  # Options: "auto" (smart, learns best), "openai", "gemini", "smart", "none"
   ai_provider: "auto"  # SMART MODE - Auto-detects and remembers working API!
 
   # OpenAI Configuration (Better quotas, higher quality)
-  openai_api_key: "YOUR_OPENAI_API_KEY_HERE"
-  openai_model: "gpt-4o-mini"  # Options: gpt-4o-mini (fast/cheap), gpt-4o (best quality)
+  # openai_api_key: "YOUR_OPENAI_API_KEY_HERE"
+  # openai_model: "gpt-4o-mini"  # Options: gpt-4o-mini (fast/cheap), gpt-4o (best quality)
 
-  # Gemini Configuration (Fallback option)
-  gemini_api_keys:
-    - "YOUR_GEMINI_API_KEY_1_HERE"  # Primary key
-    - "YOUR_GEMINI_API_KEY_2_HERE"  # Secondary key
-  gemini_model: "flash"  # Options: flash, flash-25, pro, thinking
+  # Gemini Configuration (Free tier available)
+  # gemini_api_keys:
+  #   - "YOUR_GEMINI_API_KEY_1_HERE"  # Primary key
+  #   - "YOUR_GEMINI_API_KEY_2_HERE"  # Secondary key (for rotation)
+  # gemini_model: "flash"  # Options: flash, flash-25, pro, thinking
+
+  # Text Output Options
+  # auto_type: true  # Set to false to copy to clipboard instead of typing
+  # echo_enabled: true  # Enable/disable text-to-speech echo
+  # show_ready_notification: true  # Show desktop notification when text is ready
 # Status window colors for light and dark styles
 colors:
   light:
@@ -63,9 +68,53 @@ recognize_google:
   language: auto  # Use 'auto' to detect language from keyboard layout
 gTTS:
   lang: auto  # Use 'auto' to detect language from keyboard layout
+# Voice Activity Detection settings
+vad:
+  aggressiveness: 0  # 0-3, higher values are more aggressive at filtering out non-speech
+  pause_threshold: 2.0  # seconds of silence to stop recording
+  initial_silence_grace: 2.0  # initial grace period before checking for silence
+  no_speech_timeout: 5.0  # timeout if no speech detected at all
+
+# Calibration settings
 calibrate:
   duration: 30
   asr_calibration_text: |
     The quick brown fox jumps over the lazy dog.
     The dog thinks hard, hanging his head and humming a song.
     The fox judges each choice with vision, chewing cool food on the lawn.
+
+# RAG (Retrieval-Augmented Generation) settings for enhanced AI context
+rag:
+  enabled: false  # Enable RAG for context-aware enhancement
+  vector_db_path: "~/.config/multi-dictate/vectors"
+  collection_name: "dictate_context"
+  max_context_items: 5  # Max items to retrieve for context
+  similarity_threshold: 0.7  # Minimum similarity for context retrieval
+  auto_collect: true  # Automatically collect context from active applications
+
+# Optimization processor settings - detects and handles performance/deployment requests
+optimization:
+  enabled: true  # Auto-detect optimization requests
+  keywords:
+    - "optimize"
+    - "performance"
+    - "deployment"
+    - "improve speed"
+    - "cache"
+    - "slow"
+    - "benchmark"
+    - "profiling"
+
+# Problem solver settings - auto-detects errors and provides solutions
+problem_solver:
+  enabled: true  # Auto-detect problems from clipboard
+  max_context_length: 2000
+  problem_indicators:
+    - "error"
+    - "failed"
+    - "missing"
+    - "not found"
+    - "exception"
+    - "bug"
+    - "issue"
+    - "critical"
