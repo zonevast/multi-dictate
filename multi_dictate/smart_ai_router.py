@@ -152,9 +152,9 @@ class SmartAIRouter:
             logger.info(f"🏆 Best processor by history: {best} ({scores[best]:.0%} success)")
             return best
 
-        # Fallback: prefer OpenAI if available
-        if 'openai' in self.processors:
-            return 'openai'
+        # Fallback: prefer Gemini if available (since OpenAI is rate limited)
+        if 'gemini' in self.processors:
+            return 'gemini'
         return list(self.processors.keys())[0]
 
     def _record_success(self, processor_name: str):

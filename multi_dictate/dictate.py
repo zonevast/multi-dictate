@@ -61,6 +61,7 @@ try:
     from .gemini_processor import GeminiProcessor
     from .openai_processor import OpenAIProcessor
     from .smart_ai_router import SmartAIRouter
+    from .problem_solver_processor import ProblemSolverProcessor
 except ImportError:
     # When running directly
     from kbd_utils import (check_dictation_keybindings, for_typewrite,
@@ -68,6 +69,34 @@ except ImportError:
     from gemini_processor import GeminiProcessor
     from openai_processor import OpenAIProcessor
     from smart_ai_router import SmartAIRouter
+    from problem_solver_processor import ProblemSolverProcessor
+# Fix import path for RAG processor
+import importlib.util
+import os
+
+# Load RAG processor dynamically
+rag_path = os.path.join(os.path.dirname(__file__), "simple_rag_processor.py")
+spec = importlib.util.spec_from_file_location("simple_rag_processor", rag_path)
+simple_rag_module = importlib.util.module_from_spec(spec)
+try:
+    spec.loader.exec_module(simple_rag_module)
+    SimpleRAGProcessor = simple_rag_module.SimpleRAGProcessor
+    # RAG loaded successfully
+except Exception as e:
+    SimpleRAGProcessor = None
+    # Failed to load RAG processor - will continue without RAG
+
+# Load optimization processor dynamically
+optimization_path = os.path.join(os.path.dirname(__file__), "optimization_processor.py")
+spec_opt = importlib.util.spec_from_file_location("optimization_processor", optimization_path)
+optimization_module = importlib.util.module_from_spec(spec_opt)
+try:
+    spec_opt.loader.exec_module(optimization_module)
+    OptimizationProcessor = optimization_module.OptimizationProcessor
+    # Optimization processor loaded successfully
+except Exception as e:
+    OptimizationProcessor = None
+    # Failed to load optimization processor - will continue without it
 
 # Only set log level if vosk is available
 if VOSK_AVAILABLE:
@@ -201,6 +230,39 @@ class DictationApp:
 
         # Keep backward compatibility
         self.gemini_processor = self.ai_processor
+
+        # Initialize problem solver processor
+        if hasattr(self.cfg.general, 'gemini_api_keys'):
+            gemini_keys = self.cfg.general.gemini_api_keys
+            self.problem_solver = ProblemSolverProcessor(gemini_keys)
+            logger.info("✅ Problem solver initialized")
+        else:
+            self.problem_solver = None
+
+        # Initialize RAG processor
+        rag_config = self.cfg.rag if hasattr(self.cfg, 'rag') else {}
+        rag_enabled = rag_config.get('enabled', False)
+
+        if rag_enabled and SimpleRAGProcessor:
+            try:
+                self.rag_processor = SimpleRAGProcessor(self.cfg)
+                logger.info("✅ Simple RAG processor initialized")
+            except Exception as e:
+                logger.warning(f"⚠️  RAG initialization failed: {e}")
+                self.rag_processor = None
+        else:
+            self.rag_processor = None
+
+        # Initialize optimization processor
+        if OptimizationProcessor:
+            try:
+                self.optimization_processor = OptimizationProcessor(self.cfg)
+                logger.info("✅ Optimization processor initialized")
+            except Exception as e:
+                logger.warning(f"⚠️  Optimization processor initialization failed: {e}")
+                self.optimization_processor = None
+        else:
+            self.optimization_processor = None
 
     def color_style(self):
         """Detect system color style."""
@@ -367,6 +429,26 @@ class DictationApp:
         else:
             threading.Thread(target=speak_in_thread, daemon=True).start()
 
+    def _show_ready_notification(self, text: str):
+        """Show notification when text is ready to paste"""
+        try:
+            # Try using notify-send if available
+            subprocess.run([
+                'notify-send',
+                '-t', '3000',  # 3 seconds
+                '-i', 'dialog-information',
+                'Multi-Dictate Ready',
+                f'✅ Prompt copied to clipboard!\n\n{text[:100]}{"..." if len(text) > 100 else ""}'
+            ], check=False, capture_output=True)
+        except Exception as e:
+            logger.debug(f"Notification failed: {e}")
+            # Fallback: just print to console
+            print("\n" + "="*50)
+            print("✅ PROMPT READY TO PASTE (Ctrl+V)")
+            print("="*50)
+            print(text)
+            print("="*50 + "\n")
+
     def record_audio(self, max_duration=60, stop_on_silence=False):
         """Record audio manually until stop command or timeout"""
         self.stop_recording_flag = False
@@ -521,8 +603,8 @@ class DictationApp:
 
                 t = self._process_audio(audio)
                 self.hide_status_window()
-                if params.echo:
-                    self.speak_text(t)
+                if params.echo and self.cfg.general.get('echo_enabled', True):
+                        self.speak_text(enhanced_text)
             except Exception as e:
                 logger.error(f"Error during recording: {e}")
                 logger.debug(traceback.format_exc())
@@ -575,28 +657,86 @@ class DictationApp:
                     except Exception as e:
                         logger.debug(f"Could not get clipboard: {e}")
 
-                    # Process through Gemini with clipboard context
-                    enhanced_text = self.gemini_processor.process_dictation(raw_text, clipboard_context)
+                    # Enhanced AI processing with RAG
+                    enhanced_text = None
+                    processing_info = {}
+
+                    # Try RAG processing first if available
+                    if self.rag_processor:
+                        logger.info("🧠 Using RAG processing")
+                        # Pass clipboard context to RAG processor
+                        context = {'clipboard': clipboard_context} if clipboard_context else {}
+                        enhanced_text, processing_info = self.rag_processor.process_with_context(raw_text, context)
+
+                        if processing_info.get('simple_rag_used'):
+                            logger.info(f"📚 RAG enhanced response")
+
+                    # Try optimization processor for deployment/performance tasks
+                    if not enhanced_text and self.optimization_processor:
+                        if self.optimization_processor.is_optimization_request(raw_text):
+                            logger.info("🚀 Optimization request detected, using optimization processor")
+                            context = {'clipboard': clipboard_context} if clipboard_context else {}
+                            enhanced_text = self.optimization_processor.optimize_prompt(raw_text, context)
+
+                    # If RAG not available or failed, try problem solver
+                    if not enhanced_text and clipboard_context and self.problem_solver:
+                        # Check if clipboard looks like a problem/error description
+                        problem_indicators = [
+                            'missing', 'error', 'failed', 'not found', 'not implemented',
+                            'critical', 'issue', 'bug', 'problem', '❌', '⚠️', 'exception',
+                            'missing models', 'database schemas', 'components missing'
+                        ]
+
+                        is_problem = any(indicator in clipboard_context.lower()
+                                       for indicator in problem_indicators)
+
+                        if is_problem:
+                            logger.info("🔍 Problem detected in clipboard, using problem solver")
+                            enhanced_text = self.problem_solver.process_problem(raw_text, clipboard_context)
+
+                    # If nothing worked yet, use regular AI processing
+                    if not enhanced_text:
+                        enhanced_text = self.gemini_processor.process_dictation(raw_text, clipboard_context)
+
                     logger.info(f"Enhanced text: {enhanced_text}")
 
                     self.hide_status_window()
 
-                    # Type the enhanced text - handle newlines
-                    t = self.cfg.general.typewrite_interval or 0.05
-                    lines = enhanced_text.split('\n')
-                    for i, line in enumerate(lines):
-                        if line.strip():
-                            to_type = for_typewrite(self.curr_layout, line)
-                            pyautogui.typewrite(to_type, interval=t)
-                        if i < len(lines) - 1 and lines[i+1].strip():
-                            if use_shift_enter:
-                                pyautogui.hotkey('shift', 'enter')
-                            else:
-                                pyautogui.typewrite('\\', interval=t)
-                                pyautogui.press('enter')
-                    pyautogui.typewrite(' ', interval=t)
+                    # Check if we should type or copy to clipboard
+                    if self.cfg.general.get('auto_type', True):
+                        # Type the enhanced text - handle newlines
+                        t = self.cfg.general.typewrite_interval or 0.05
+                        lines = enhanced_text.split('\n')
+                        for i, line in enumerate(lines):
+                            if line.strip():
+                                to_type = for_typewrite(self.curr_layout, line)
+                                pyautogui.typewrite(to_type, interval=t)
+                            if i < len(lines) - 1 and lines[i+1].strip():
+                                if use_shift_enter:
+                                    pyautogui.hotkey('shift', 'enter')
+                                else:
+                                    pyautogui.typewrite('\\', interval=t)
+                                    pyautogui.press('enter')
+                        pyautogui.typewrite(' ', interval=t)
+                    else:
+                        # Copy to clipboard instead of typing
+                        try:
+                            # Use xclip to copy to clipboard
+                            subprocess.run(['xclip', '-selection', 'clipboard'],
+                                         input=enhanced_text.encode(), check=True)
 
-                    if params.echo:
+                            # Show ready notification
+                            if self.cfg.general.get('show_ready_notification', True):
+                                self._show_ready_notification(enhanced_text)
+
+                            print(f"✅ Prompt ready to paste (Ctrl+V): {enhanced_text[:50]}...")
+
+                        except Exception as e:
+                            logger.error(f"Failed to copy to clipboard: {e}")
+                            # Fallback to typing if clipboard fails
+                            pyautogui.typewrite(enhanced_text, interval=0.05)
+
+                    if params.echo and self.cfg.general.get('echo_enabled', True):
                         self.speak_text(enhanced_text)
                 else:
                     self.hide_status_window()
@@ -647,21 +787,37 @@ class DictationApp:
 
                     self.hide_status_window()
 
-                    t = self.cfg.general.typewrite_interval or 0.05
-                    lines = enhanced_text.split('\n')
-                    for i, line in enumerate(lines):
-                        if line.strip():
-                            to_type = for_typewrite(self.curr_layout, line)
-                            pyautogui.typewrite(to_type, interval=t)
-                        if i < len(lines) - 1 and lines[i+1].strip():
-                            if use_shift_enter:
-                                pyautogui.hotkey('shift', 'enter')
-                            else:
-                                pyautogui.typewrite('\\', interval=t)
-                                pyautogui.press('enter')
-                    pyautogui.typewrite(' ', interval=t)
+                    # Check if we should type or copy to clipboard
+                    if self.cfg.general.get('auto_type', True):
+                        t = self.cfg.general.typewrite_interval or 0.05
+                        lines = enhanced_text.split('\n')
+                        for i, line in enumerate(lines):
+                            if line.strip():
+                                to_type = for_typewrite(self.curr_layout, line)
+                                pyautogui.typewrite(to_type, interval=t)
+                            if i < len(lines) - 1 and lines[i+1].strip():
+                                if use_shift_enter:
+                                    pyautogui.hotkey('shift', 'enter')
+                                else:
+                                    pyautogui.typewrite('\\', interval=t)
+                                    pyautogui.press('enter')
+                        pyautogui.typewrite(' ', interval=t)
+                    else:
+                        # Copy to clipboard instead of typing
+                        try:
+                            subprocess.run(['xclip', '-selection', 'clipboard'],
+                                         input=enhanced_text.encode(), check=True)
 
-                    if params.echo:
+                            if self.cfg.general.get('show_ready_notification', True):
+                                self._show_ready_notification(enhanced_text)
+
+                            print(f"✅ Prompt ready to paste (Ctrl+V): {enhanced_text[:50]}...")
+
+                        except Exception as e:
+                            logger.error(f"Failed to copy to clipboard: {e}")
+                            pyautogui.typewrite(enhanced_text, interval=0.05)
+
+                    if params.echo and self.cfg.general.get('echo_enabled', True):
                         self.speak_text(enhanced_text)
                 else:
                     self.hide_status_window()
@@ -696,9 +852,27 @@ class DictationApp:
             text = self._recognize(audio)
             logger.info(text)
 
-            to_type = for_typewrite(self.curr_layout, text)
-            t = self.cfg.general.typewrite_interval or 0.05
-            pyautogui.typewrite(to_type + " ", interval=t)
+            # Check if we should type or copy to clipboard
+            if self.cfg.general.get('auto_type', True):
+                to_type = for_typewrite(self.curr_layout, text)
+                t = self.cfg.general.typewrite_interval or 0.05
+                pyautogui.typewrite(to_type + " ", interval=t)
+            else:
+                # Copy to clipboard instead of typing
+                try:
+                    subprocess.run(['xclip', '-selection', 'clipboard'],
+                                 input=text.encode(), check=True)
+
+                    if self.cfg.general.get('show_ready_notification', True):
+                        self._show_ready_notification(text)
+
+                    print(f"✅ Prompt ready to paste (Ctrl+V): {text[:50]}...")
+
+                except Exception as e:
+                    logger.error(f"Failed to copy to clipboard: {e}")
+                    # Fallback to typing
+                    to_type = for_typewrite(self.curr_layout, text)
+                    pyautogui.typewrite(to_type + " ", interval=0.05)
         except sr.UnknownValueError:
             print("No speech detected")
             # self._show_error("No speech detected")

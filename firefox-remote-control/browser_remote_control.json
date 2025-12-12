@@ -1,0 +1,7 @@
+{
+  "name": "browser_remote_control",
+  "description": "Remote browser control native messaging host",
+  "path": "/home/yousef/multi-dictate/firefox-remote-control/native_host.py",
+  "type": "stdio",
+  "allowed_extensions": ["remote-control@multi-dictate"]
+}
