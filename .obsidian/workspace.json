@@ -159,13 +159,25 @@
               "icon": "lucide-list",
               "title": "Outline"
             }
+          },
+          {
+            "id": "ae64156a2ce4462d",
+            "type": "leaf",
+            "state": {
+              "type": "file-properties",
+              "state": {
+                "file": "Excalidraw/idea1.excalidraw.md"
+              },
+              "icon": "lucide-info",
+              "title": "File properties for idea1.excalidraw"
+            }
           }
-        ]
+        ],
+        "currentTab": 5
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -181,21 +193,21 @@
   },
   "active": "aa62c1f8545cade7",
   "lastOpenFiles": [
-    "multi_dictate/ai_processors/qwen_processor.py.tmp.1396685.1765607701485",
-    "multi_dictate/utils/__pycache__/context_collector.cpython-310.pyc",
-    "multi_dictate/utils/__pycache__/__init__.cpython-310.pyc",
-    "multi_dictate/database/__pycache__/knowledge_base.cpython-310.pyc",
-    "multi_dictate/database/__pycache__/vector_store.cpython-310.pyc",
-    "multi_dictate/database/__pycache__/__init__.cpython-310.pyc",
-    "multi_dictate/__pycache__/rag_enhanced_processor.cpython-310.pyc",
-    "multi_dictate/utils/__pycache__/implementation_guide_generator.cpython-310.pyc",
-    "multi_dictate/utils/__pycache__/file_analyzer.cpython-310.pyc",
-    "multi_dictate/utils/__pycache__/file_context_reader.cpython-310.pyc",
-    "multi_dictate/utils/__pycache__",
+    "text.py.tmp.1396685.1765613325041",
+    "text.py.tmp.1396685.1765613165394",
+    "text.py.tmp.1396685.1765613128218",
+    "text.py.tmp.1396685.1765612710632",
+    "text.py.tmp.1396685.1765611711498",
+    "text.py.tmp.1396685.1765611700312",
+    "text.py.tmp.1396685.1765611626200",
+    "text.py.tmp.1396685.1765610352706",
+    "Excalidraw/idea1.excalidraw.md",
+    "text.py.tmp.1396685.1765608494147",
+    "text.py.tmp.1396685.1765608486976",
+    "text.py.tmp.1396685.1765608478782",
     "archive/SIMPLIFIED_FLOW.md",
     "keyboard-flow.md",
     "flowchart.md",
-    "Excalidraw/idea1.excalidraw.md",
     "Excalidraw/idea.excalidraw.md"
   ]
 }
