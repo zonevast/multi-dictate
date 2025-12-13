@@ -1,0 +1,56 @@
+{
+  "dashboard": {
+    "url_patterns": [
+      "/dashboard",
+      "/analytics",
+      "/reports"
+    ],
+    "common_issues": [
+      "slow loading",
+      "data visualization",
+      "real-time updates"
+    ],
+    "optimization_focus": [
+      "data caching",
+      "lazy loading",
+      "chart optimization"
+    ],
+    "reference_example": "\nTask: Optimize dashboard page performance and user experience\n\nContext:\n- Current page: /dashboard with analytics widgets\n- Performance issues: Slow initial load (>3s), laggy interactions\n- User complaints: Dashboard takes too long to load on mobile\n\nTechnical Analysis:\n- Multiple API calls for widgets loading sequentially\n- Large datasets being processed client-side\n- No caching strategy implemented\n- Heavy JavaScript bundle size\n\nOptimization Strategy:\n1. Implement widget-level lazy loading\n2. Add Redis caching for frequently accessed data\n3. Use Web Workers for data processing\n4. Implement incremental loading for large datasets\n5. Optimize bundle size with code splitting\n\nImplementation Steps:\n1. Dashboard Audit (2 hours)\n   - Measure current performance metrics\n   - Identify bottlenecks using Chrome DevTools\n   - Map user interaction patterns\n\n2. Caching Implementation (4 hours)\n   - Set up Redis for API response caching\n   - Implement client-side caching strategies\n   - Add cache invalidation logic\n\n3. Lazy Loading (3 hours)\n   - Implement intersection observer for widgets\n   - Add loading states and skeletons\n   - Optimize initial critical rendering path\n\n4. Performance Monitoring (1 hour)\n   - Add performance metrics tracking\n   - Set up alerts for performance degradation\n\nExpected Outcome:\n- Initial load time: 3s \u2192 1.2s (60% improvement)\n- Interaction responsiveness: 500ms \u2192 100ms\n- Mobile performance score: 45 \u2192 85\n\nTesting Strategy:\n- Lighthouse performance testing\n- Real user monitoring (RUM)\n- Load testing with simulated concurrent users"
+  },
+  "api": {
+    "url_patterns": [
+      "/api/",
+      "/graphql",
+      "/rest"
+    ],
+    "common_issues": [
+      "slow responses",
+      "authentication",
+      "rate limiting"
+    ],
+    "optimization_focus": [
+      "query optimization",
+      "caching",
+      "async processing"
+    ],
+    "reference_example": "\nTask: Optimize API performance and implement scaling strategy\n\nContext:\n- REST API experiencing slow response times (>2s average)\n- Database queries identified as primary bottleneck\n- Growing traffic causing performance degradation\n\nTechnical Analysis:\n- N+1 query problems in several endpoints\n- No query result caching\n- Synchronous processing for long-running operations\n- Missing database indexes\n\nOptimization Plan:\n1. Database Query Optimization\n2. API Response Caching\n3. Asynchronous Processing\n4. Load Balancing Setup\n\nImplementation:\nPhase 1: Database Optimization (8 hours)\n- Add composite indexes for frequent query patterns\n- Implement query result pagination\n- Fix N+1 query issues with eager loading\n- Set up connection pooling\n\nPhase 2: Caching Layer (6 hours)\n- Redis implementation for frequently accessed data\n- HTTP caching headers for static responses\n- Database query result caching\n- Cache invalidation strategy\n\nPhase 3: Async Processing (4 hours)\n- Background job processing for long operations\n- WebSocket updates for real-time features\n- Queue management with Redis/RabbitMQ\n\nExpected Results:\n- API response time: 2s \u2192 200ms (90% improvement)\n- Database load: 80% \u2192 30% CPU usage\n- Concurrent user support: 100 \u2192 1000+ users"
+  },
+  "user_profile": {
+    "url_patterns": [
+      "/profile",
+      "/settings",
+      "/account"
+    ],
+    "common_issues": [
+      "data loading",
+      "permissions",
+      "security"
+    ],
+    "optimization_focus": [
+      "data privacy",
+      "efficient loading",
+      "security"
+    ],
+    "reference_example": "\nTask: Enhance user profile page security and performance\n\nContext:\n- User profile page loading slowly with large datasets\n- Security concerns with data exposure\n- Poor mobile experience with profile management\n\nSecurity Enhancement:\n1. Implement proper data access controls\n2. Add data encryption for sensitive information\n3. Implement audit logging for profile changes\n4. Add two-factor authentication options\n\nPerformance Optimization:\n1. Lazy load non-critical profile sections\n2. Implement client-side caching for profile data\n3. Optimize image upload and processing\n4. Add progressive loading for profile history\n\nImplementation Strategy:\nWeek 1: Security Audit and Fixes\nWeek 2: Performance Optimization\nWeek 3: Testing and Deployment\nWeek 4: Monitoring and Refinement"
+  }
+}

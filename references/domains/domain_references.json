@@ -1,0 +1,134 @@
+{
+  "plumbing": {
+    "keywords": [
+      "pipes",
+      "water",
+      "drainage",
+      "plumbing",
+      "leak",
+      "fixtures"
+    ],
+    "scenarios": [
+      {
+        "title": "Residential Plumbing System Design",
+        "description": "Complete plumbing system optimization for residential properties",
+        "steps": [
+          "Water pressure analysis and optimization",
+          "Pipe sizing calculations for optimal flow",
+          "Drainage system design and venting requirements",
+          "Fixture placement and water supply routing",
+          "Hot water system optimization with recirculation",
+          "Leak detection and prevention systems",
+          "Water conservation measures implementation"
+        ],
+        "tools": [
+          "Hydraulic calculation software",
+          "Building code requirements",
+          "Material selection guides"
+        ],
+        "references": [
+          "International Plumbing Code",
+          "Local building regulations",
+          "Best practice guidelines"
+        ]
+      },
+      {
+        "title": "Commercial Plumbing Retrofit",
+        "description": "Upgrading existing commercial plumbing systems",
+        "steps": [
+          "Current system audit and deficiency identification",
+          "Water efficiency assessment and upgrade planning",
+          "Pipe material evaluation and replacement strategy",
+          "Fixture upgrade to water-efficient models",
+          "Backflow prevention system installation",
+          "Grease trap and drainage optimization",
+          "Maintenance schedule optimization"
+        ]
+      }
+    ]
+  },
+  "engineering": {
+    "keywords": [
+      "structural",
+      "mechanical",
+      "electrical",
+      "civil",
+      "industrial"
+    ],
+    "scenarios": [
+      {
+        "title": "Industrial Automation System Implementation",
+        "description": "Complete automation system for manufacturing facility",
+        "steps": [
+          "Current process analysis and automation opportunities",
+          "PLC system design and programming",
+          "Sensor and actuator network implementation",
+          "HMI/SCADA system integration",
+          "Safety system design and implementation",
+          "Data collection and analytics setup",
+          "Maintenance protocol development",
+          "Operator training program"
+        ],
+        "technical_specifications": {
+          "control_system": "PLC-based with redundant controllers",
+          "communication": "Industrial Ethernet with OPC-UA protocol",
+          "safety": "SIL 2 rated safety systems",
+          "monitoring": "Real-time performance dashboards"
+        }
+      },
+      {
+        "title": "Structural Retrofit for Seismic Compliance",
+        "description": "Building structural reinforcement for earthquake resistance",
+        "steps": [
+          "Structural analysis and vulnerability assessment",
+          "Seismic retrofit strategy development",
+          "Foundation strengthening design",
+          "Shear wall and bracing system installation",
+          "Connection reinforcement implementation",
+          "Non-structural component securing",
+          "Post-retrofit verification testing"
+        ]
+      }
+    ]
+  },
+  "medical": {
+    "keywords": [
+      "healthcare",
+      "medical",
+      "hospital",
+      "clinic",
+      "patient"
+    ],
+    "scenarios": [
+      {
+        "title": "Hospital Information System Integration",
+        "description": "Comprehensive HIS integration for healthcare facility",
+        "steps": [
+          "Current system assessment and gap analysis",
+          "HIPAA compliance review and enhancement",
+          "Electronic Health Records (EHR) integration",
+          "Clinical decision support system implementation",
+          "Patient portal development and integration",
+          "Billing and insurance system integration",
+          "Pharmacy management system connection",
+          "Laboratory information system integration",
+          "Telemedicine platform integration",
+          "Staff training and change management"
+        ],
+        "compliance": [
+          "HIPAA",
+          "HITECH",
+          "FDA regulations",
+          "State medical privacy laws"
+        ],
+        "security_measures": [
+          "End-to-end encryption",
+          "Access control and authentication",
+          "Audit logging and monitoring",
+          "Data backup and disaster recovery",
+          "Business associate agreements"
+        ]
+      }
+    ]
+  }
+}

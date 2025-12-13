@@ -1,6 +1,9 @@
 keybindings:
   - name: "Toggle speech echo on/off"
     command: echo
+    keys: "<Super>F6"
+  - name: "Optimize clipboard text"
+    command: clipboard_optimize
     keys: "<Super>F9"
   - name: "Start manual recording"
     command: record
@@ -31,7 +34,8 @@ general:
   typewrite_interval: 0.04
 
   # AI Enhancement Provider
-  # Options: "auto" (smart, learns best), "openai", "gemini", "smart", "none"
+  # Options: "auto" (smart, learns best), "openai", "gemini", "qwen", "none"
+  # The simplified system uses Smart AI Router for automatic provider selection
   ai_provider: "auto"  # SMART MODE - Auto-detects and remembers working API!
 
   # OpenAI Configuration (Better quotas, higher quality)
@@ -92,29 +96,9 @@ rag:
   similarity_threshold: 0.7  # Minimum similarity for context retrieval
   auto_collect: true  # Automatically collect context from active applications
 
-# Optimization processor settings - detects and handles performance/deployment requests
-optimization:
-  enabled: true  # Auto-detect optimization requests
-  keywords:
-    - "optimize"
-    - "performance"
-    - "deployment"
-    - "improve speed"
-    - "cache"
-    - "slow"
-    - "benchmark"
-    - "profiling"
-
-# Problem solver settings - auto-detects errors and provides solutions
-problem_solver:
-  enabled: true  # Auto-detect problems from clipboard
-  max_context_length: 2000
-  problem_indicators:
-    - "error"
-    - "failed"
-    - "missing"
-    - "not found"
-    - "exception"
-    - "bug"
-    - "issue"
-    - "critical"
+# NOTE: System has been simplified for cleaner processing
+# - No 9-stage pipeline
+# - No complex optimization
+# - No problem solver
+# Just Smart AI Router with Gemini/Qwen/OpenAI
+# Clipboard context reading via Super+F9

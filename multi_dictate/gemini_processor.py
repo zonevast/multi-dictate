@@ -100,9 +100,25 @@ class GeminiProcessor:
         if not text or not text.strip():
             return text
 
-        # Build prompt with optional clipboard context
-        if clipboard_context and clipboard_context.strip():
-            prompt = f"""You are a prompt engineer. Convert this speech into a clear, professional request.
+        # Check if this is already an optimized prompt - if so, execute it directly
+        is_optimized_prompt = any(indicator in text for indicator in [
+            "Act as an expert", "Target Project:", "Project Name:", "Technical Context:",
+            "Task:", "Context:", "Issues to Address:", "Requirements:", "Implementation Steps:"
+        ])
+
+        if is_optimized_prompt:
+            # This is already an optimized prompt, execute it directly
+            prompt = f"""You are an AI assistant. Execute the following optimized prompt and provide a comprehensive response.
+
+{text}
+
+Provide a detailed, actionable response that directly addresses the request above.
+Include specific steps, examples, and practical advice where relevant."""
+            logger.info("✨ Processing optimized prompt directly")
+        else:
+            # Build prompt with optional clipboard context
+            if clipboard_context and clipboard_context.strip():
+                prompt = f"""You are a prompt engineer. Convert this speech into a clear, professional request.
 
 Context (from clipboard):
 \"\"\"
@@ -119,8 +135,8 @@ Rules:
 - Output ONLY the improved text, no explanations
 
 Output:"""
-        else:
-            prompt = f"""You are a prompt engineer. Convert this speech into a clear, professional request.
+            else:
+                prompt = f"""You are a prompt engineer. Convert this speech into a clear, professional request.
 
 Input: "{text}"
 
@@ -132,6 +148,7 @@ Rules:
 - Output ONLY the improved text, no explanations
 
 Output:"""
+            logger.info("🔧 Processing raw speech input")
 
         try:
             processed = self._make_request(prompt)

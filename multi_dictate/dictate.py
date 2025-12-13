@@ -19,6 +19,7 @@ import errno
 import json
 import logging
 import os
+import difflib
 import re
 import select
 import signal
@@ -38,7 +39,17 @@ try:
 except Exception:
     pass
 
-import pyautogui
+try:
+    import pyautogui
+except Exception as e:
+    logging.getLogger(__name__).warning(f"PyAutoGUI unavailable ({e}); using no-op fallback.")
+    import types
+    pyautogui = types.SimpleNamespace(
+        typewrite=lambda *args, **kwargs: None,
+        hotkey=lambda *args, **kwargs: None,
+        press=lambda *args, **kwargs: None,
+    )
+    sys.modules['pyautogui'] = pyautogui
 import speech_recognition as sr
 
 warnings.filterwarnings("ignore", category=UserWarning, module="webrtcvad")
@@ -61,7 +72,7 @@ try:
     from .gemini_processor import GeminiProcessor
     from .openai_processor import OpenAIProcessor
     from .smart_ai_router import SmartAIRouter
-    from .problem_solver_processor import ProblemSolverProcessor
+    from .qwen_processor import QwenProcessor
 except ImportError:
     # When running directly
     from kbd_utils import (check_dictation_keybindings, for_typewrite,
@@ -69,7 +80,7 @@ except ImportError:
     from gemini_processor import GeminiProcessor
     from openai_processor import OpenAIProcessor
     from smart_ai_router import SmartAIRouter
-    from problem_solver_processor import ProblemSolverProcessor
+    from qwen_processor import QwenProcessor
 # Fix import path for RAG processor
 import importlib.util
 import os
@@ -97,6 +108,30 @@ try:
 except Exception as e:
     OptimizationProcessor = None
     # Failed to load optimization processor - will continue without it
+
+# Load prompt engineering optimizer dynamically
+prompt_engineering_path = os.path.join(os.path.dirname(__file__), "prompt_engineering_optimizer.py")
+spec_pe = importlib.util.spec_from_file_location("prompt_engineering_optimizer", prompt_engineering_path)
+prompt_engineering_module = importlib.util.module_from_spec(spec_pe)
+try:
+    spec_pe.loader.exec_module(prompt_engineering_module)
+    PromptEngineeringOptimizer = prompt_engineering_module.PromptEngineeringOptimizer
+    # Prompt engineering optimizer loaded successfully
+except Exception as e:
+    PromptEngineeringOptimizer = None
+    # Failed to load prompt engineering optimizer - will continue without it
+
+# Load enhanced reference system dynamically
+enhanced_ref_path = os.path.join(os.path.dirname(__file__), "enhanced_reference_system.py")
+spec_ref = importlib.util.spec_from_file_location("enhanced_reference_system", enhanced_ref_path)
+enhanced_ref_module = importlib.util.module_from_spec(spec_ref)
+try:
+    spec_ref.loader.exec_module(enhanced_ref_module)
+    EnhancedReferenceSystem = enhanced_ref_module.EnhancedReferenceSystem
+    # Enhanced reference system loaded successfully
+except Exception as e:
+    EnhancedReferenceSystem = None
+    # Failed to load enhanced reference system - will continue without it
 
 # Only set log level if vosk is available
 if VOSK_AVAILABLE:
@@ -186,6 +221,7 @@ class DictationApp:
             "ai_record_shift": (lambda: self.start_ai_enhanced_recording(use_shift_enter=True), "AI recording with clipboard (shift+enter)"),
             "ai_record_clean": (self.start_ai_clean_recording, "AI recording without clipboard"),
             "ai_record_clean_shift": (lambda: self.start_ai_clean_recording(use_shift_enter=True), "AI recording without clipboard (shift+enter)"),
+            "clipboard_optimize": (self.optimize_clipboard_prompt, "Optimize clipboard text and copy result"),
         }
 
         self.tts_lock = threading.Lock()
@@ -223,6 +259,19 @@ class DictationApp:
             else:
                 logger.warning("⚠️  Gemini selected but no API keys configured")
                 self.ai_processor = None
+        elif ai_provider == 'qwen':
+            # Force Qwen only
+            qwen_model = self.cfg.general.get('qwen_model', 'qwen-turbo')
+            try:
+                self.ai_processor = QwenProcessor(qwen_model)
+                if self.ai_processor.available:
+                    logger.info(f"✅ Using Qwen processor with {qwen_model}")
+                else:
+                    logger.warning("⚠️  Qwen selected but not available (Ollama not running)")
+                    self.ai_processor = None
+            except Exception as e:
+                logger.warning(f"⚠️  Could not initialize Qwen processor: {e}")
+                self.ai_processor = None
         else:
             # No AI processing
             self.ai_processor = None
@@ -231,15 +280,7 @@ class DictationApp:
         # Keep backward compatibility
         self.gemini_processor = self.ai_processor
 
-        # Initialize problem solver processor
-        if hasattr(self.cfg.general, 'gemini_api_keys'):
-            gemini_keys = self.cfg.general.gemini_api_keys
-            self.problem_solver = ProblemSolverProcessor(gemini_keys)
-            logger.info("✅ Problem solver initialized")
-        else:
-            self.problem_solver = None
-
-        # Initialize RAG processor
+        # Initialize RAG processor (only if enabled)
         rag_config = self.cfg.rag if hasattr(self.cfg, 'rag') else {}
         rag_enabled = rag_config.get('enabled', False)
 
@@ -253,16 +294,10 @@ class DictationApp:
         else:
             self.rag_processor = None
 
-        # Initialize optimization processor
-        if OptimizationProcessor:
-            try:
-                self.optimization_processor = OptimizationProcessor(self.cfg)
-                logger.info("✅ Optimization processor initialized")
-            except Exception as e:
-                logger.warning(f"⚠️  Optimization processor initialization failed: {e}")
-                self.optimization_processor = None
-        else:
-            self.optimization_processor = None
+        # Simplified system - no complex pipelines
+        self.prompt_pipeline = None
+        self.rag_processor = None
+        logger.info("✅ Simplified AI processing enabled (no 9-stage pipeline)")
 
     def color_style(self):
         """Detect system color style."""
@@ -294,8 +329,16 @@ class DictationApp:
         return self._color_style
 
     def calibrate(self):
+        try:
+            import Levenshtein
+            distance_fn = Levenshtein.distance
+        except ImportError:
+            logger.warning("Levenshtein not available, using fallback distance metric")
+            import difflib
 
-        import Levenshtein
+            def distance_fn(a, b):
+                ratio = difflib.SequenceMatcher(None, a, b).ratio()
+                return int((1 - ratio) * max(len(a), len(b)))
 
         """Calibrate voice recognition with all available engines."""
         duration = self.cfg.calibrate.duration or 20
@@ -319,7 +362,7 @@ class DictationApp:
             try:
                 config = dict(self.cfg[f"recognize_{engine_name}"] or {})
                 user = engine_details["parser"](engine_details["recognize"](audio, **config))
-                dist = Levenshtein.distance(re.sub(r"[^\w\s]", "", orig).lower(), user)
+                dist = distance_fn(re.sub(r"[^\w\s]", "", orig).lower(), user)
                 results.append({"engine": engine_name, "text": user, "dist": dist})
                 print(f"    Recognized: '{user}'")
                 print(f"    Distance: {dist} (lower is better)")
@@ -537,37 +580,40 @@ class DictationApp:
         bg_color = c.get(status_type, 'gray')
 
         def update_gui():
-            if self.status_window:
-                self.status_window.configure(bg=bg_color)
-                for widget in self.status_window.winfo_children():
-                    widget.destroy()
-            else:
-                self.status_window = tk.Tk()
-                self.status_window.title("Dictation")
-                self.status_window.attributes("-topmost", True)
-                self.status_window.overrideredirect(True)
+            try:
+                if self.status_window:
+                    self.status_window.configure(bg=bg_color)
+                    for widget in self.status_window.winfo_children():
+                        widget.destroy()
+                else:
+                    self.status_window = tk.Tk()
+                    self.status_window.title("Dictation")
+                    self.status_window.attributes("-topmost", True)
+                    self.status_window.overrideredirect(True)
 
-                try:
-                    from screeninfo import get_monitors
+                    try:
+                        from screeninfo import get_monitors
 
-                    primary_monitor = next(m for m in get_monitors() if m.is_primary)
-                    x = primary_monitor.x + (primary_monitor.width - width) // 2
-                    y = primary_monitor.y + (primary_monitor.height - height) // 2
-                    self.status_window.geometry(f"{width}x{height}+{x}+{y}")
-                except Exception as e:
-                    logger.error(f"Error during recording: {e}")
-                    self.status_window.geometry(f"{width}x{height}+860+490")
+                        primary_monitor = next(m for m in get_monitors() if m.is_primary)
+                        x = primary_monitor.x + (primary_monitor.width - width) // 2
+                        y = primary_monitor.y + (primary_monitor.height - height) // 2
+                        self.status_window.geometry(f"{width}x{height}+{x}+{y}")
+                    except Exception:
+                        self.status_window.geometry(f"{width}x{height}+860+490")
 
-                self.status_window.configure(bg=bg_color)
+                    self.status_window.configure(bg=bg_color)
 
-            tk.Label(
-                self.status_window,
-                text=message,
-                bg=bg_color,
-                fg=self._fg_color,
-                font=("Arial", 12),
-            ).pack(expand=True)
-            self.status_window.update()
+                tk.Label(
+                    self.status_window,
+                    text=message,
+                    bg=bg_color,
+                    fg=self._fg_color,
+                    font=("Arial", 12),
+                ).pack(expand=True)
+                self.status_window.update()
+            except tk.TclError as e:
+                logger.warning(f"Status window disabled: {e}")
+                self.status_window = None
 
         if threading.current_thread() is threading.main_thread():
             update_gui()
@@ -586,6 +632,96 @@ class DictationApp:
             hide_gui()
         else:
             self.gui_queue.append(hide_gui)
+
+    def _extract_local_path(self, text):
+        """Extract filesystem paths from clipboard text (local and remote)."""
+        if not text:
+            return None
+
+        # Look for user@host:/path or plain /path formats
+        path_pattern = r'(?:(?P<host>[A-Za-z0-9._-]+@[A-Za-z0-9._-]+):)?(?P<path>/[^\s]+)'
+        matches = re.finditer(path_pattern, text)
+
+        # First, try to find local paths that exist
+        for match in matches:
+            candidate = match.group('path')
+            if candidate.endswith('\\'):
+                candidate = candidate[:-1]
+            # Trim trailing punctuation
+            candidate = candidate.rstrip('.,;')
+            if os.path.exists(candidate):
+                return candidate
+
+        # If no local paths found, return the first remote SSH path found
+        text = str(text)  # Ensure it's a string
+        matches = re.finditer(path_pattern, text)
+        for match in matches:
+            full_path = match.group(0)  # Full match including host if present
+            if '@' in full_path and ':' in full_path:
+                # This is an SSH path
+                return full_path
+
+        # If no SSH paths, return the first path found even if it doesn't exist locally
+        matches = re.finditer(path_pattern, text)
+        for match in matches:
+            candidate = match.group('path')
+            if candidate.endswith('\\'):
+                candidate = candidate[:-1]
+            candidate = candidate.rstrip('.,;')
+            if candidate and len(candidate) > 1:  # Ensure it's not just "/"
+                return candidate
+
+        return None
+
+    def _prepare_prompt_inputs(self, raw_text, clipboard_context):
+        """Normalize clipboard/raw text and extract useful context like filesystem paths."""
+        processed_text = raw_text or ""
+        processed_clipboard = clipboard_context or ""
+        detected_path = self._extract_local_path(clipboard_context or "")
+
+        if detected_path:
+            logger.info(f"📂 Detected project path: {detected_path}")
+            # Ensure clipboard context explicitly includes the usable path
+            if processed_clipboard.strip() == "" or processed_clipboard.strip() == detected_path:
+                processed_clipboard = detected_path
+            elif detected_path not in processed_clipboard:
+                processed_clipboard = f"{processed_clipboard.strip()}\n\nProject path: {detected_path}"
+
+            # If clipboard mostly contained the path itself, create a clearer instruction
+            if not processed_text.strip() or processed_text.strip() == clipboard_context.strip():
+                processed_text = f"Please debug the system at {detected_path} and verify there are no outstanding issues."
+
+        return processed_text, processed_clipboard, detected_path
+
+    def _generate_ai_response(self, raw_text, clipboard_context=None):
+        """Simple AI response generation - no complex pipelines."""
+        if not raw_text:
+            return None
+
+        # Try to get clipboard if not provided
+        if not clipboard_context:
+            try:
+                import subprocess
+                result = subprocess.run(['xclip', '-selection', 'clipboard', '-o'],
+                                      capture_output=True, text=True, timeout=2)
+                if result.returncode == 0 and result.stdout.strip():
+                    clipboard_context = result.stdout.strip()
+                    logger.info(f"📋 Retrieved clipboard context: {clipboard_context[:50]}...")
+            except:
+                pass
+
+        # Direct processing through Smart AI Router
+        if self.ai_processor:
+            logger.info("🤖 Simple AI processing with Smart Router")
+            logger.info(f"   Text: '{raw_text[:50]}...'")
+            logger.info(f"   Context: {'YES - ' + str(clipboard_context[:50]) + '...' if clipboard_context else 'NO'}")
+            enhanced_text = self.ai_processor.process_dictation(raw_text, clipboard_context)
+            logger.info(f"   Result: '{enhanced_text[:50]}...'" if enhanced_text else "No result")
+            return enhanced_text
+        else:
+            logger.warning("⚠️ No AI processor available, returning original")
+            return raw_text
+
 
     def start_manual_recording(self):
         """Start manual audio recording - records until stop command"""
@@ -617,6 +753,9 @@ class DictationApp:
 
     def start_ai_enhanced_recording(self, use_shift_enter=False):
         """Toggle AI-enhanced recording with Gemini processing"""
+        print("🎯 DEBUG: start_ai_enhanced_recording called")
+        logger.info("🎯 DEBUG: start_ai_enhanced_recording called - should read clipboard")
+
         if not self.gemini_processor:
             print("❌ Gemini API key not configured")
             self._show_error("❌ No API key")
@@ -653,50 +792,16 @@ class DictationApp:
                                               capture_output=True, text=True, timeout=2)
                         if result.returncode == 0 and result.stdout.strip():
                             clipboard_context = result.stdout.strip()
-                            logger.info(f"Clipboard context: {clipboard_context[:100]}...")
+                            logger.info(f"📋 Clipboard context: {clipboard_context[:100]}...")
+                            logger.info(f"📊 Clipboard length: {len(clipboard_context)} characters")
                     except Exception as e:
-                        logger.debug(f"Could not get clipboard: {e}")
+                        logger.error(f"❌ Could not get clipboard: {e}")
 
-                    # Enhanced AI processing with RAG
-                    enhanced_text = None
-                    processing_info = {}
+                    # Log what will be sent to AI
+                    logger.info(f"🎤 Raw text: {raw_text}")
+                    logger.info(f"🤖 Sending to AI processor with context: {'YES' if clipboard_context else 'NO'}")
 
-                    # Try RAG processing first if available
-                    if self.rag_processor:
-                        logger.info("🧠 Using RAG processing")
-                        # Pass clipboard context to RAG processor
-                        context = {'clipboard': clipboard_context} if clipboard_context else {}
-                        enhanced_text, processing_info = self.rag_processor.process_with_context(raw_text, context)
-
-                        if processing_info.get('simple_rag_used'):
-                            logger.info(f"📚 RAG enhanced response")
-
-                    # Try optimization processor for deployment/performance tasks
-                    if not enhanced_text and self.optimization_processor:
-                        if self.optimization_processor.is_optimization_request(raw_text):
-                            logger.info("🚀 Optimization request detected, using optimization processor")
-                            context = {'clipboard': clipboard_context} if clipboard_context else {}
-                            enhanced_text = self.optimization_processor.optimize_prompt(raw_text, context)
-
-                    # If RAG not available or failed, try problem solver
-                    if not enhanced_text and clipboard_context and self.problem_solver:
-                        # Check if clipboard looks like a problem/error description
-                        problem_indicators = [
-                            'missing', 'error', 'failed', 'not found', 'not implemented',
-                            'critical', 'issue', 'bug', 'problem', '❌', '⚠️', 'exception',
-                            'missing models', 'database schemas', 'components missing'
-                        ]
-
-                        is_problem = any(indicator in clipboard_context.lower()
-                                       for indicator in problem_indicators)
-
-                        if is_problem:
-                            logger.info("🔍 Problem detected in clipboard, using problem solver")
-                            enhanced_text = self.problem_solver.process_problem(raw_text, clipboard_context)
-
-                    # If nothing worked yet, use regular AI processing
-                    if not enhanced_text:
-                        enhanced_text = self.gemini_processor.process_dictation(raw_text, clipboard_context)
+                    enhanced_text = self._generate_ai_response(raw_text, clipboard_context)
 
                     logger.info(f"Enhanced text: {enhanced_text}")
 
@@ -753,8 +858,65 @@ class DictationApp:
 
         threading.Thread(target=ai_record_and_process, daemon=True).start()
 
+    def optimize_clipboard_prompt(self):
+        """Optimize currently copied text and push result back to clipboard."""
+        if not self.gemini_processor:
+            print("❌ Gemini API key not configured")
+            self._show_error("❌ No API key")
+            return
+
+        try:
+            result = subprocess.run(
+                ['xclip', '-selection', 'clipboard', '-o'],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+        except FileNotFoundError:
+            logger.error("xclip not installed - clipboard optimization unavailable")
+            self._show_error("Clipboard tool not found")
+            return
+        except Exception as e:
+            logger.error(f"Failed to read clipboard: {e}")
+            self._show_error("Clipboard read error")
+            return
+
+        if result.returncode != 0 or not result.stdout.strip():
+            logger.info("Clipboard empty - nothing to optimize")
+            self._show_error("Clipboard is empty")
+            return
+
+        clipboard_text = result.stdout.strip()
+        logger.info(f"📋 Optimizing clipboard text ({len(clipboard_text)} chars)")
+
+        self.show_status_window("Optimizing clipboard ✨", "processing")
+        try:
+            enhanced_text = self._generate_ai_response(clipboard_text, clipboard_text)
+            if not enhanced_text:
+                self._show_error("Clipboard optimization failed")
+                return
+
+            subprocess.run(
+                ['xclip', '-selection', 'clipboard'],
+                input=enhanced_text.encode(),
+                check=True
+            )
+
+            if self.cfg.general.get('show_ready_notification', True):
+                self._show_ready_notification(enhanced_text)
+
+            print(f"✅ Optimized prompt ready (clipboard): {enhanced_text[:80]}{'...' if len(enhanced_text) > 80 else ''}")
+        except Exception as e:
+            logger.error(f"Error while optimizing clipboard text: {e}")
+            self._show_error("Clipboard optimization error")
+        finally:
+            self.hide_status_window()
+
     def start_ai_clean_recording(self, use_shift_enter=False):
         """AI-enhanced recording WITHOUT clipboard context"""
+        print("🧹 DEBUG: start_ai_clean_recording called - ignoring clipboard")
+        logger.info("🧹 DEBUG: start_ai_clean_recording called - ignoring clipboard")
+
         if not self.gemini_processor:
             print("❌ Gemini API key not configured")
             self._show_error("❌ No API key")

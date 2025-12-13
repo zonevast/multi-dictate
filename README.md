@@ -76,7 +76,8 @@ Once installed with `./install.sh`, the application is installed as a Python pac
 
 1. Focus cursor on any input field or text editor
 2. Use one of the following keybindings:
-   **Super+F9**: Toggle speech echo on/off\
+   **Super+F6**: Toggle speech echo on/off\
+   **Super+F9**: Optimize clipboard text with AI references (no recording needed)\
    **Super+F10**: Start manual recording\
    **Super+F11**: Stop manual recording\
    **Super+F12**: Toggle recording\

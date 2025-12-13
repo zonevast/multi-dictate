@@ -61,14 +61,17 @@ class SmartAIRouter:
             "last_successful": None,
             "last_success_time": 0,
             "success_count": {
+                "qwen": 0,
                 "openai": 0,
                 "gemini": 0
             },
             "failure_count": {
+                "qwen": 0,
                 "openai": 0,
                 "gemini": 0
             },
             "last_test_time": {
+                "qwen": 0,
                 "openai": 0,
                 "gemini": 0
             }
@@ -87,6 +90,19 @@ class SmartAIRouter:
         """Initialize all available AI processors"""
         from multi_dictate.openai_processor import OpenAIProcessor
         from multi_dictate.gemini_processor import GeminiProcessor
+        from multi_dictate.qwen_processor import QwenProcessor
+
+        # Try Qwen first (default choice)
+        try:
+            qwen_model = self.config.general.get('qwen_model', 'qwen-turbo')
+            self.processors['qwen'] = QwenProcessor(qwen_model)
+            if self.processors['qwen'].available:
+                logger.info(f"✅ Qwen processor available ({qwen_model})")
+            else:
+                logger.info(f"⚠️  Qwen processor not available, will try others")
+                del self.processors['qwen']
+        except Exception as e:
+            logger.warning(f"⚠️  Could not init Qwen: {e}")
 
         # Try OpenAI
         openai_key = self.config.general.get('openai_api_key')
@@ -152,8 +168,12 @@ class SmartAIRouter:
             logger.info(f"🏆 Best processor by history: {best} ({scores[best]:.0%} success)")
             return best
 
-        # Fallback: prefer Gemini if available (since OpenAI is rate limited)
-        if 'gemini' in self.processors:
+        # Fallback: prefer Qwen first, then Gemini, then OpenAI
+        if 'qwen' in self.processors:
+            logger.info(f"🎯 Defaulting to Qwen (preferred model)")
+            return 'qwen'
+        elif 'gemini' in self.processors:
+            logger.info(f"🎯 Defaulting to Gemini (second choice)")
             return 'gemini'
         return list(self.processors.keys())[0]
 
@@ -207,6 +227,14 @@ class SmartAIRouter:
         if not text or not text.strip():
             return text
 
+        # DEBUG: Log everything coming in
+        logger.info("="*50)
+        logger.info("🤖 Smart AI Router Processing")
+        logger.info(f"🎤 Input Text: '{text}'")
+        logger.info(f"📋 Clipboard Context: {'YES - ' + str(clipboard_context[:50]) + '...' if clipboard_context else 'NO'}")
+        logger.info(f"📊 Text Length: {len(text)} chars")
+        logger.info(f"📊 Clipboard Length: {len(clipboard_context) if clipboard_context else 0} chars")
+
         if not self.processors:
             logger.warning("⚠️  No AI processors available, returning original")
             return text
@@ -247,7 +275,11 @@ class SmartAIRouter:
         """Try to process with specific processor"""
         try:
             processor = self.processors[name]
+            logger.info(f"🔧 Calling {name} processor with context")
+            logger.info(f"   - Text: '{text[:50]}...'")
+            logger.info(f"   - Context: {'YES (' + str(clipboard_context[:30]) + '...)' if clipboard_context else 'NO'}")
             result = processor.process_dictation(text, clipboard_context)
+            logger.info(f"✅ {name} returned result: '{result[:50]}...'" if result else f"❌ {name} returned None")
             return result
         except Exception as e:
             logger.error(f"❌ {name} exception: {e}")
