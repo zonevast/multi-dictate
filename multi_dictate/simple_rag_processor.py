@@ -14,28 +14,28 @@ logger = logging.getLogger(__name__)
 # Import Enhanced Chroma vector database, file context reader, and file analyzer
 try:
     # Import Enhanced Chroma vector database
-    chroma_path = os.path.join(os.path.dirname(__file__), "enhanced_chroma_db.py")
+    chroma_path = os.path.join(os.path.dirname(__file__), "database", "enhanced_chroma_db.py")
     spec = importlib.util.spec_from_file_location("enhanced_chroma_db", chroma_path)
     chroma_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(chroma_module)
     EnhancedChromaDB = chroma_module.EnhancedChromaDB
 
     # Import File Context Reader
-    file_reader_path = os.path.join(os.path.dirname(__file__), "file_context_reader.py")
+    file_reader_path = os.path.join(os.path.dirname(__file__), "utils", "file_context_reader.py")
     spec = importlib.util.spec_from_file_location("file_context_reader", file_reader_path)
     file_reader_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(file_reader_module)
     FileContextReader = file_reader_module.FileContextReader
 
     # Import File Analyzer
-    analyzer_path = os.path.join(os.path.dirname(__file__), "file_analyzer.py")
+    analyzer_path = os.path.join(os.path.dirname(__file__), "utils", "file_analyzer.py")
     spec = importlib.util.spec_from_file_location("file_analyzer", analyzer_path)
     analyzer_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(analyzer_module)
     FileContentAnalyzer = analyzer_module.FileContentAnalyzer
 
     # Import Implementation Guide Generator
-    guide_gen_path = os.path.join(os.path.dirname(__file__), "implementation_guide_generator.py")
+    guide_gen_path = os.path.join(os.path.dirname(__file__), "utils", "implementation_guide_generator.py")
     spec = importlib.util.spec_from_file_location("implementation_guide_generator", guide_gen_path)
     guide_gen_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(guide_gen_module)

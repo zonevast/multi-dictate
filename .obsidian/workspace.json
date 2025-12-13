@@ -1,0 +1,201 @@
+{
+  "main": {
+    "id": "b823c346559901cd",
+    "type": "split",
+    "children": [
+      {
+        "id": "687dcee90f9db155",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "aa62c1f8545cade7",
+            "type": "leaf",
+            "state": {
+              "type": "excalidraw",
+              "state": {
+                "file": "Excalidraw/idea1.excalidraw.md"
+              },
+              "icon": "excalidraw-icon",
+              "title": "idea1.excalidraw"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6cee5a93cc7cfbcd",
+    "type": "split",
+    "children": [
+      {
+        "id": "0b778264efea11f0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "44d4a63b3788d278",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "3b6cb68db3a9fdbd",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "22d1655cf5482548",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d7f42cea49f93e77",
+    "type": "split",
+    "children": [
+      {
+        "id": "49e4178972e37969",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5c98129a4d2cfc45",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "75059d0246f14065",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "ee600659a183b206",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c0f5fdbbf3179a8d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "0ceda6dc40a99937",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "obsidian-excalidraw-plugin:New drawing": false
+    }
+  },
+  "active": "aa62c1f8545cade7",
+  "lastOpenFiles": [
+    "multi_dictate/ai_processors/qwen_processor.py.tmp.1396685.1765607701485",
+    "multi_dictate/utils/__pycache__/context_collector.cpython-310.pyc",
+    "multi_dictate/utils/__pycache__/__init__.cpython-310.pyc",
+    "multi_dictate/database/__pycache__/knowledge_base.cpython-310.pyc",
+    "multi_dictate/database/__pycache__/vector_store.cpython-310.pyc",
+    "multi_dictate/database/__pycache__/__init__.cpython-310.pyc",
+    "multi_dictate/__pycache__/rag_enhanced_processor.cpython-310.pyc",
+    "multi_dictate/utils/__pycache__/implementation_guide_generator.cpython-310.pyc",
+    "multi_dictate/utils/__pycache__/file_analyzer.cpython-310.pyc",
+    "multi_dictate/utils/__pycache__/file_context_reader.cpython-310.pyc",
+    "multi_dictate/utils/__pycache__",
+    "archive/SIMPLIFIED_FLOW.md",
+    "keyboard-flow.md",
+    "flowchart.md",
+    "Excalidraw/idea1.excalidraw.md",
+    "Excalidraw/idea.excalidraw.md"
+  ]
+}

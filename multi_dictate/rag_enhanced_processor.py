@@ -5,9 +5,9 @@ import logging
 import json
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
-from .vector_store import LocalVectorStore
-from .knowledge_base import KnowledgeBase
-from .context_collector import ContextCollector
+from .database.vector_store import LocalVectorStore
+from .database.knowledge_base import KnowledgeBase
+from .utils.context_collector import ContextCollector
 
 logger = logging.getLogger(__name__)
 
