@@ -69,18 +69,18 @@ try:
     # When running as part of package
     from .kbd_utils import (check_dictation_keybindings, for_typewrite,
                             get_current_keyboard_layout, kbd_cfg)
-    from .gemini_processor import GeminiProcessor
-    from .openai_processor import OpenAIProcessor
+    from .ai_processors.gemini_processor_optimized import GeminiProcessorOptimized as GeminiProcessor
+    from .ai_processors.openai_processor import OpenAIProcessor
     from .smart_ai_router import SmartAIRouter
-    from .qwen_processor import QwenProcessor
+    from .ai_processors.qwen_processor import QwenProcessor
 except ImportError:
     # When running directly
     from kbd_utils import (check_dictation_keybindings, for_typewrite,
                            get_current_keyboard_layout, kbd_cfg)
-    from gemini_processor import GeminiProcessor
-    from openai_processor import OpenAIProcessor
+    from ai_processors.gemini_processor_optimized import GeminiProcessorOptimized as GeminiProcessor
+    from ai_processors.openai_processor import OpenAIProcessor
     from smart_ai_router import SmartAIRouter
-    from qwen_processor import QwenProcessor
+    from ai_processors.qwen_processor import QwenProcessor
 # Fix import path for RAG processor
 import importlib.util
 import os

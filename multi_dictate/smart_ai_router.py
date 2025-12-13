@@ -88,9 +88,9 @@ class SmartAIRouter:
 
     def _initialize_processors(self):
         """Initialize all available AI processors"""
-        from multi_dictate.openai_processor import OpenAIProcessor
-        from multi_dictate.gemini_processor import GeminiProcessor
-        from multi_dictate.qwen_processor import QwenProcessor
+        from .ai_processors.openai_processor import OpenAIProcessor
+        from .ai_processors.gemini_processor_optimized import GeminiProcessorOptimized as GeminiProcessor
+        from .ai_processors.qwen_processor import QwenProcessor
 
         # Try Qwen first (default choice)
         try:
