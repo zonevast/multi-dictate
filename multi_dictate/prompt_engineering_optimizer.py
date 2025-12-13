@@ -509,6 +509,50 @@ Expected Improvement: Stable memory usage over time"""
 
         return min(complexity, 5)
 
+    def construct_system_prompt_request(self, voice_input: str, clipboard: str = None) -> str:
+        """
+        Construct a meta-prompt for the AI to generate a structured prompt.
+        This uses the AI (Qwen/Gemini) to do the heavy lifting of summarizing messy clipboard data.
+        """
+        intent, domain = self.detect_intent_and_domain(voice_input)
+        
+        system_instruction = f"""You are an Expert Prompt Improver.
+Your goal: Turn the user's raw voice command and messy clipboard notes into a SINGLE, HIGH-QUALITY LLM PROMPT.
+
+---
+### EXAMPLE INTERACTION (Follow this format):
+
+**USER VOICE:** "Create a python script to parse this log"
+**CLIPBOARD:** "Error: 500 on /api/v1/users... timestamp 12:00..."
+
+**YOUR OUTPUT:**
+Task: Create a Python script to parse server logs.
+Context:
+- Target error: Error 500 on /api/v1/users
+- Timestamp format: Standard dashed format (e.g., 12:00)
+Requirements:
+- Parse line-by-line
+- Extract error codes and timestamps
+- Output JSON format
+---
+
+### REAL TASK:
+
+**USER VOICE:** "{voice_input}"
+**CLIPBOARD CONTEXT:**
+{clipboard or "No clipboard context."}
+
+**INSTRUCTIONS:**
+1. Read the clipboard context. Extract the real facts/notes.
+2. Combine with User Voice intent.
+3. WRITE THE FINAL PROMPT for an AI to execute the task.
+4. DO NOT say "Here is the prompt". Just write the prompt.
+5. DO NOT summarize what you are doing. Just do it.
+
+**YOUR OUTPUT:**
+"""
+        return system_instruction
+
     def optimize_prompt(self, raw_input: str, clipboard: str = None) -> Dict:
         """
         Main optimization pipeline that transforms messy input into structured prompt.
@@ -516,6 +560,7 @@ Expected Improvement: Stable memory usage over time"""
         start_time = time.time()
 
         logger.info(f"🚀 Starting prompt optimization for: {raw_input[:50]}...")
+        # ... rest of existing logic ...
 
         # Step 1: Clean and normalize input
         cleaned_input = self._clean_input(raw_input)

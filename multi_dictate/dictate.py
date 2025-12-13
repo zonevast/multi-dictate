@@ -294,8 +294,18 @@ class DictationApp:
         else:
             self.rag_processor = None
 
+        # Initialize PromptEngineeringOptimizer
+        if PromptEngineeringOptimizer:
+            try:
+                self.prompt_optimizer = PromptEngineeringOptimizer(self.cfg)
+                logger.info("✅ Prompt Engineering Optimizer initialized")
+            except Exception as e:
+                logger.warning(f"⚠️  Prompt Optimizer initialization failed: {e}")
+                self.prompt_optimizer = None
+        else:
+            self.prompt_optimizer = None
+
         # Simplified system - no complex pipelines
-        self.prompt_pipeline = None
         self.rag_processor = None
         logger.info("✅ Simplified AI processing enabled (no 9-stage pipeline)")
 
@@ -710,6 +720,35 @@ class DictationApp:
             except:
                 pass
 
+        # Priority: Prompt Optimization (User request: optimize result as prompt)
+        if self.prompt_optimizer:
+            try:
+                logger.info("✨ Optimizing result as prompt via AI")
+                # 1. Construct the meta-prompt that tells AI how to structure the result
+                meta_prompt = self.prompt_optimizer.construct_system_prompt_request(raw_text, clipboard_context)
+                
+                # 2. Add a special flag/prefix so ai_processor knows this is a meta-request (optional, or just pass it)
+                # But here we just pass the meta-prompt as the 'text' to process
+                # We pass None as clipboard_context because the meta_prompt ALREADY includes the clipboard data inside it!
+                
+                if self.ai_processor:
+                    logger.info("🤖 Sending meta-prompt to Smart AI Router")
+                    optimized = self.ai_processor.process_dictation(meta_prompt, None)
+                    if optimized:
+                        logger.info(f"✅ AI Generated optimized prompt: {optimized[:50]}...")
+                        return optimized
+                    else:
+                        logger.warning("⚠️ AI failed to generate prompt, falling back to rule-based")
+                
+                # Fallback to rule-based if AI fails or isn't available
+                result = self.prompt_optimizer.optimize_prompt(raw_text, clipboard_context)
+                if result and "optimized_prompt" in result:
+                    return result["optimized_prompt"]
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Prompt optimization failed: {e}")
+                # Fallthrough to standard processing
+
         # Direct processing through Smart AI Router
         if self.ai_processor:
             logger.info("🤖 Simple AI processing with Smart Router")
@@ -943,8 +982,8 @@ class DictationApp:
                 if raw_text:
                     logger.info(f"Raw text: {raw_text}")
 
-                    # Process through Gemini WITHOUT clipboard context
-                    enhanced_text = self.gemini_processor.process_dictation(raw_text, None)
+                    # Process through AI pipeline (clean context)
+                    enhanced_text = self._generate_ai_response(raw_text, None)
                     logger.info(f"Enhanced text: {enhanced_text}")
 
                     self.hide_status_window()

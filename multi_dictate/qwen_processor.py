@@ -48,80 +48,39 @@ class QwenProcessor:
             logger.warning(f"⚠️ Qwen {model} not available")
 
     def _check_availability(self) -> bool:
-        """Check if Ollama and the model are available."""
+        """Check if qwen CLI is available."""
         try:
-            # Check if Ollama is installed
+            # Check if qwen CLI is installed
             result = subprocess.run(
-                ["ollama", "--version"],
+                ["qwen", "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5
             )
             if result.returncode != 0:
-                logger.warning("Ollama not found")
+                logger.warning("qwen CLI not found")
                 return False
-
-            # Check if model is available
-            result = subprocess.run(
-                ["ollama", "list"],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            if result.returncode != 0:
-                logger.error("Failed to list Ollama models")
-                return False
-
-            # Check if specific model is listed
-            if self.model not in result.stdout:
-                logger.info(f"Model {self.model} not found, attempting to download...")
-                return self._download_model()
-
-            logger.info(f"✅ Qwen model {self.model} is available")
+            
+            logger.info("✅ qwen CLI tool is available")
             return True
 
         except FileNotFoundError:
-            logger.warning("Ollama command not found")
+            logger.warning("qwen command not found")
             return False
         except Exception as e:
-            logger.error(f"Error checking Qwen availability: {e}")
+            logger.error(f"Error checking qwen availability: {e}")
             return False
 
     def _download_model(self) -> bool:
-        """Download the Qwen model if not available."""
-        try:
-            logger.info(f"📥 Downloading {self.model} model...")
-            print(f"Downloading {self.model} model (this may take a few minutes)...")
-
-            result = subprocess.run(
-                ["ollama", "pull", self.model],
-                capture_output=True,
-                text=True,
-                timeout=600  # 10 minutes timeout
-            )
-
-            if result.returncode == 0:
-                logger.info(f"✅ Successfully downloaded {self.model}")
-                return True
-            else:
-                logger.error(f"❌ Failed to download {self.model}: {result.stderr}")
-                return False
-
-        except subprocess.TimeoutExpired:
-            logger.error(f"❌ Download of {self.model} timed out")
-            return False
-        except Exception as e:
-            logger.error(f"❌ Error downloading {self.model}: {e}")
-            return False
+        """No-op for CLI tool which manages its own models."""
+        return True
 
     def process_dictation(self, text: str, clipboard_context: str = None) -> str:
         """
         Process text through Qwen model.
-
         Args:
             text: Input text to process
             clipboard_context: Optional clipboard context
-
         Returns:
             Processed text from Qwen
         """
@@ -132,14 +91,17 @@ class QwenProcessor:
             logger.warning("Qwen not available, returning original text")
             return f"[Qwen unavailable] {text}"
 
-        # Build enhanced prompt
-        prompt = self._build_prompt(text, clipboard_context)
+        # For the CLI, we just use the text as prompt since it's already a meta-prompt
+        # But if there's clipboard context separately, we can append it
+        prompt = text
+        if clipboard_context:
+            prompt += f"\n\nCONTEXT:\n{clipboard_context}"
 
         try:
             # Call Qwen model
             response = self._call_qwen(prompt)
             if response:
-                logger.info(f"Qwen processed: '{text[:30]}...' → '{response[:50]}...'")
+                logger.info(f"Qwen processed: '{text[:30]}...' -> Response length: {len(response)}")
                 return response
             else:
                 logger.warning("Qwen returned empty response")
@@ -149,46 +111,32 @@ class QwenProcessor:
             logger.error(f"Error processing with Qwen: {e}")
             return f"[Qwen error: {e}] {text}"
 
-    def _build_prompt(self, text: str, clipboard_context: str = None) -> str:
-        """Build an enhanced prompt for Qwen."""
-        prompt_parts = [
-            "You are a helpful AI assistant.",
-            "Please process the following input and provide a clear, helpful response."
-        ]
-
-        if clipboard_context and clipboard_context.strip():
-            prompt_parts.append(f"\nContext: {clipboard_context}")
-
-        prompt_parts.append(f"\nInput: {text}")
-
-        prompt_parts.append(
-            "\nProvide a clear, structured response that directly addresses the request above."
-        )
-
-        return "\n".join(prompt_parts)
-
     def _call_qwen(self, prompt: str) -> Optional[str]:
-        """Call Qwen model with the given prompt."""
+        """Call qwen CLI with the given prompt."""
         try:
-            # Use Ollama to call the model
+            # Use qwen CLI to call the model
+            # We use --output-format text to get clean output
+            logger.debug(f"Calling qwen CLI with prompt length: {len(prompt)}")
+            
             result = subprocess.run(
-                ["ollama", "run", self.model, prompt],
+                ["qwen", prompt, "-o", "text"],
                 capture_output=True,
                 text=True,
                 timeout=120  # 2 minute timeout
             )
 
             if result.returncode == 0:
+                # The CLI output might contain some header/footer, but -o text should be relatively clean
                 return result.stdout.strip()
             else:
-                logger.error(f"Qwen call failed: {result.stderr}")
+                logger.error(f"qwen CLI call failed: {result.stderr}")
                 return None
 
         except subprocess.TimeoutExpired:
-            logger.error("Qwen call timed out")
+            logger.error("qwen CLI call timed out")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error calling Qwen: {e}")
+            logger.error(f"Unexpected error calling qwen CLI: {e}")
             return None
 
     def get_available_models(self) -> List[str]:

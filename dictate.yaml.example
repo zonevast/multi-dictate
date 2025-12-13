@@ -2,9 +2,6 @@ keybindings:
   - name: "Toggle speech echo on/off"
     command: echo
     keys: "<Super>F6"
-  - name: "Optimize clipboard text"
-    command: clipboard_optimize
-    keys: "<Super>F9"
   - name: "Start manual recording"
     command: record
     keys: "<Super>F10"
@@ -17,15 +14,12 @@ keybindings:
   - name: "Record until silence detected"
     command: record till pause
     keys: "<Shift><Control>s"
-  - name: "AI Enhanced Recording (with clipboard context)"
-    command: ai_record
-    keys: "<Super>F8"
-  - name: "AI Enhanced Recording (with clipboard, shift+enter newlines)"
-    command: ai_record_shift
-    keys: "<Super><Shift>F8"
-  - name: "AI Clean Recording (without clipboard context)"
+  - name: "AI Enhanced Recording (Clean - Voice Only)"
     command: ai_record_clean
-    keys: "<Super>F7"
+    keys: "<Super>F8"
+  - name: "AI Enhanced Recording (Context - Voice + Clipboard)"
+    command: ai_record
+    keys: "<Super>F9"
   - name: "AI Clean Recording (shift+enter newlines)"
     command: ai_record_clean_shift
     keys: "<Super><Shift>F7"

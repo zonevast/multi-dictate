@@ -16,9 +16,8 @@ The multi-dictate application has been simplified to provide clean, reliable tex
 - Provides prompt engineering and optimization
 
 ### 3. **Clipboard Context Modes**
-- **F7**: Clean mode (no clipboard)
-- **F8**: Context mode (reads clipboard for context)
-- **F9**: Optimize clipboard text only
+- **F8**: Clean mode (Voice Only - No clipboard)
+- **F9**: Context mode (Voice + Clipboard Context)
 
 ### 4. **RAG Support (Optional)**
 - Only enabled when configured
@@ -28,7 +27,7 @@ The multi-dictate application has been simplified to provide clean, reliable tex
 ## Removed Features
 - Complex optimization processor
 - Problem solver processor
-- Prompt engineering optimizer (replaced by simple routing)
+- Old "Optimize Clipboard Only" manual trigger
 - Quality scoring system
 - Enhanced reference system
 
@@ -39,25 +38,20 @@ Audio → VAD → Speech Recognition → Raw Text
                                       ↓
                          ┌─────────────────┐
                          │  Mode Selection  │
-                         │ (F7/F8/F9)      │
+                         │    (F8/F9)      │
                          └────────┬────────┘
                                   ↓
                          ┌─────────────────┐
-                         │ 9-Stage Pipeline│◄───┐
-                         │ (Optional)      │    │
+                         │ Prompt Optimizer│◄───┐
+                         │ (Structurizes)  │    │
                          └────────┬────────┘    │
                                   ↓             │
                          ┌─────────────────┐    │
                          │  Smart AI Router │    │
-                         │  (Auto-selects)  │    │
+                         │  (Process/LLM)   │    │
                          └────────┬────────┘    │
                                   ↓             │
-                         ┌─────────────────┐    │
-                         │   AI Processors │    │
-                         │ (Gemini/Qwen)   │    │
-                         └────────┬────────┘    │
-                                  ↓             │
-                           Enhanced Output     │
+                           Final Output        │
                                   └─────────────┘
 ```
 
@@ -68,7 +62,8 @@ Audio → VAD → Speech Recognition → Raw Text
 
 ## Usage
 1. **Basic Dictation**: Use F10/F11 for manual recording
-2. **AI Enhanced**: Use F7/F8 for AI processing
-3. **Clipboard Optimization**: Use F9 to optimize clipboard text
+2. **Clean AI Prompt**: Use **F8** for voice-only optimized prompts
+3. **Context AI Prompt**: Use **F9** for voice + clipboard optimized prompts
+4. **Clipboard Optimization**: (Removed in this version)
 
 The simplified system focuses on reliability and clean results while maintaining the powerful 9-stage enhancement as an optional feature.
