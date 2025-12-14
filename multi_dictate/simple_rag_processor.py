@@ -315,8 +315,25 @@ class SimpleRAGProcessor:
         if not context:
             context = {}
 
+        # Determine project context
+        project_name = None
+        if context and 'project_root' in context:
+            project_name = os.path.basename(context['project_root'])
+
         # Check for similar past patterns from ChromaDB memory
-        similar_patterns = self.find_similar_patterns(text, max_results=2)
+        # Filter by project if known, or general if not
+        metadata_filter = {'project': project_name} if project_name and "project" in text.lower() else None
+        
+        similar_patterns = self.find_similar_patterns(
+            text, 
+            max_results=3, 
+            metadata_filter=metadata_filter
+        )
+        
+        # Also auto-scan documentation if we are in a project
+        if project_name and context.get('project_root') and self.vector_db:
+             # This is lightweight check inside scan_workspace_docs
+             self.scan_workspace_docs(context['project_root'], project_name)
 
         # Read and analyze file content
         file_analysis_results = []
@@ -434,9 +451,68 @@ class SimpleRAGProcessor:
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 # Fall back to traditional format
 
-        # Fall back to traditional enhancement if structured guide generation fails
-        logger.info(f"🐛 DEBUG: Falling back to traditional enhancement")
+        return enhanced_response
+
+            except Exception as e:
+                logger.info(f"🐛 DEBUG: Exception in enhanced response: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+
+        # Fall back to traditional enhancement
         return self._generate_traditional_enhancement(text, context, similar_patterns, file_analysis_results, file_content)
+
+    def scan_workspace_docs(self, workspace_path: str, project_name: str = None):
+        """Scan documentation files in the workspace and add to knowledge base"""
+        if not self.vector_db or not workspace_path:
+            return
+
+        docs_dir = os.path.join(workspace_path, "docs")
+        if not os.path.exists(docs_dir):
+            # Also check root for READMEs or .md files
+            docs_dir = workspace_path
+        
+        # Determine project name if not provided
+        if not project_name:
+            project_name = os.path.basename(workspace_path)
+
+        logger.info(f"📚 Scanning documentation for project '{project_name}' in {docs_dir}")
+        
+        count = 0
+        try:
+            for root, dirs, files in os.walk(workspace_path):
+                # Skip hidden dirs
+                if '/.' in root:
+                    continue
+                    
+                for file in files:
+                    if file.endswith('.md') or file.endswith('.txt') or file.endswith('.rst'):
+                        # Process doc file
+                        file_path = os.path.join(root, file)
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                                if len(content) < 50: continue # Skip tiny files
+
+                                # Add to Chroma as "Project Knowledge"
+                                rel_path = os.path.relpath(file_path, workspace_path)
+                                self.vector_db.add_knowledge(
+                                    text=content,
+                                    category="project_documentation",
+                                    subcategory=project_name,
+                                    metadata={
+                                        "source_file": rel_path,
+                                        "project": project_name,
+                                        "file_type": "documentation"
+                                    }
+                                )
+                                count += 1
+                        except Exception as e:
+                            logger.warning(f"Failed to read doc {file}: {e}")
+            
+            if count > 0:
+                logger.info(f"✅ Ingested {count} documentation files for {project_name}")
+        except Exception as e:
+            logger.error(f"Doc scan failed: {e}")
 
     def _generate_traditional_enhancement(self, text: str, context: Dict, similar_patterns: List,
                                         file_analysis_results: List, file_content: str) -> str:

@@ -223,8 +223,9 @@ class EnhancedChromaDB:
                             query_text: str,
                             max_results: int = 5,
                             min_similarity: float = 0.7,
-                            categories: List[str] = None) -> List[Dict]:
-        """Find similar patterns using semantic search"""
+                            categories: List[str] = None,
+                            metadata_filter: Dict = None) -> List[Dict]:
+        """Find similar patterns using semantic search with optional metadata filtering and boosting"""
 
         # Build where clause if categories specified
         where_clause = {"type": "user_pattern"}
@@ -234,8 +235,9 @@ class EnhancedChromaDB:
         # Query Chroma
         results = self.patterns_collection.query(
             query_texts=[query_text],
-            n_results=max_results,
-            where=where_clause
+            n_results=max_results * 2,  # Fetch more to allow for re-ranking
+            where=where_clause,
+            where_document=None
         )
 
         # Format results
@@ -245,8 +247,31 @@ class EnhancedChromaDB:
                 distance = results['distances'][0][i]  # Lower is better
                 similarity = 1.0 - distance  # Convert to similarity
 
-                if similarity >= min_similarity:
-                    metadata = results['metadatas'][0][i]
+                # Apply metadata filtering if requested (e.g., project-specific)
+                metadata = results['metadatas'][0][i]
+                if metadata_filter:
+                    match = True
+                    for key, value in metadata_filter.items():
+                        if metadata.get(key) != value:
+                            match = False
+                            break
+                    if not match:
+                        continue
+
+                # REPETITION HANDLING: Boost score for frequently used patterns
+                usage_count = metadata.get("total_usage", 0)
+                success_count = metadata.get("success_count", 0)
+                boost_factor = 1.0
+                
+                # If used > 5 times with high success, it's a "Habit" - boost it
+                if usage_count > 5 and (success_count / usage_count) > 0.8:
+                    boost_factor = 1.2  # 20% boost for habits
+                
+                # Final adjusted similarity
+                weighted_similarity = similarity * boost_factor
+
+                if weighted_similarity >= min_similarity:
+
 
                     # Load solution (enhanced to handle structured solutions)
                     solution = ""

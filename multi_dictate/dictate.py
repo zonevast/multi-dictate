@@ -720,6 +720,22 @@ class DictationApp:
             except:
                 pass
 
+        # 1. RAG Enhancement (Retrieve Context & Past Solutions)
+        if hasattr(self, 'rag_processor') and self.rag_processor and self.cfg.get('rag', {}).get('enabled', False):
+            try:
+                logger.info("🧠 Enhancing prompt with RAG (Past Solutions & File Context)")
+                # Get current working directory as project root proxy
+                cwd = os.getcwd()
+                raw_text = self.rag_processor.enhance_prompt(
+                    raw_text,
+                    context={
+                        'clipboard': clipboard_context,
+                        'project_root': cwd
+                    }
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ RAG enhancement failed: {e}")
+
         # Priority: Prompt Optimization (User request: optimize result as prompt)
         if self.prompt_optimizer:
             try:
@@ -843,6 +859,20 @@ class DictationApp:
                     enhanced_text = self._generate_ai_response(raw_text, clipboard_context)
 
                     logger.info(f"Enhanced text: {enhanced_text}")
+
+                    # 3. Active Learning: Store successful pattern back to RAG
+                    if enhanced_text and hasattr(self, 'rag_processor') and self.rag_processor:
+                        try:
+                            # Only store if meaningful change occurred
+                            if enhanced_text != raw_text:
+                                logger.info("🧠 Learning new pattern from successful interaction...")
+                                self.rag_processor.store_successful_interaction(
+                                    user_input=raw_text,
+                                    ai_response=enhanced_text,
+                                    user_feedback="implicit_success"
+                                )
+                        except Exception as e:
+                            logger.warning(f"⚠️ Failed to learn pattern: {e}")
 
                     self.hide_status_window()
 
