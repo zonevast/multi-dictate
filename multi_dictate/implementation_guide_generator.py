@@ -51,12 +51,14 @@ class ImplementationGuideGenerator:
     def generate_guide(self,
                        structured_solution: Dict,
                        file_analysis: List[Dict] = None,
-                       pattern_info: Dict = None) -> Dict:
+                       pattern_info: Dict = None,
+                       knowledge_context: List[Dict] = None) -> Dict:
         """Generate complete implementation guide"""
 
         guide = {
             'timestamp': datetime.now().isoformat(),
             'analysis': self._generate_analysis_section(file_analysis, pattern_info),
+            'knowledge_context': knowledge_context or [],
             'implementation_steps': self._generate_implementation_steps(structured_solution),
             'testing_procedures': self._generate_testing_procedures(structured_solution, file_analysis),
             'expected_results': self._generate_expected_results(structured_solution, pattern_info),
@@ -435,6 +437,16 @@ class ImplementationGuideGenerator:
             if patterns:
                 context_info = f"Context: {', '.join(patterns)}"
 
+        # Extract Knowledge Base info
+        knowledge_info = ""
+        if guide.get('knowledge_context'):
+            k_items = []
+            for k in guide['knowledge_context'][:3]: # Top 3 items
+                 text_snip = k.get('text', '')[:100].replace('\n', ' ')
+                 k_items.append(f" - {text_snip}...")
+            if k_items:
+                knowledge_info = "\nRelevant Docs:\n" + "\n".join(k_items)
+
         # Build the structured optimization prompt
         prompt_parts = []
 
@@ -452,6 +464,9 @@ class ImplementationGuideGenerator:
 
         if context_info:
             prompt_parts.append(f"Additional context: {context_info}")
+
+        if knowledge_info:
+            prompt_parts.append(knowledge_info)
 
         if url_info:
             prompt_parts.append(f"Target URL: {url_info}")

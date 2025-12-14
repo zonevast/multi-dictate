@@ -270,7 +270,7 @@ class SimpleRAGProcessor:
 
         return 'general'
 
-    def find_similar_patterns(self, user_input: str, max_results: int = 3) -> List[Dict]:
+    def find_similar_patterns(self, user_input: str, max_results: int = 3, metadata_filter: Dict = None) -> List[Dict]:
         """Find similar past patterns based on semantic similarity"""
         if not self.vector_db:
             return []
@@ -280,7 +280,8 @@ class SimpleRAGProcessor:
             patterns = self.vector_db.find_similar_patterns(
                 query_text=user_input,
                 max_results=max_results,
-                min_similarity=0.1  # Lower threshold for testing
+                min_similarity=0.1,  # Lower threshold for testing
+                metadata_filter=metadata_filter
             )
 
             return patterns
@@ -334,6 +335,20 @@ class SimpleRAGProcessor:
         if project_name and context.get('project_root') and self.vector_db:
              # This is lightweight check inside scan_workspace_docs
              self.scan_workspace_docs(context['project_root'], project_name)
+
+        # RETRIEVE KNOWLEDGE FROM DOCS (The missing link!)
+        knowledge_results = []
+        if self.vector_db:
+             # Search in project docs and general knowledge
+             categories = ["project_documentation", "general_knowledge"]
+             # If we have a project, allow searching its specific docs
+             knowledge_results = self.vector_db.find_knowledge(
+                 query_text=text,
+                 categories=categories,
+                 max_results=3
+             )
+             if knowledge_results:
+                 logger.info(f"📚 Found {len(knowledge_results)} relevant doc snippets")
 
         # Read and analyze file content
         file_analysis_results = []
@@ -422,12 +437,18 @@ class SimpleRAGProcessor:
                 guide = self.guide_generator.generate_guide(
                     structured_solution=structured_solution,
                     file_analysis=file_analysis_results,
-                    pattern_info=similar_patterns
+                    pattern_info=similar_patterns,
+                    knowledge_context=knowledge_results # Pass docs here
                 )
                 logger.info(f"🐛 DEBUG: Guide generated with {len(guide['implementation_steps'])} steps")
 
                 # Format as text for output
                 enhanced_response = self.guide_generator.format_guide_as_text(guide)
+                
+                # Explicitly append knowledge if guide generator didn't use it sufficiently
+                if knowledge_results and "Knowledge" not in enhanced_response:
+                     docs_text = "\n".join([f"- {k['text'][:200]}..." for k in knowledge_results])
+                     enhanced_response += f"\n\n📚 Relevant Documentation:\n{docs_text}"
                 logger.info(f"🐛 DEBUG: Formatted response length={len(enhanced_response)}")
 
                 # Clear URL after use
@@ -451,12 +472,7 @@ class SimpleRAGProcessor:
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 # Fall back to traditional format
 
-        return enhanced_response
 
-            except Exception as e:
-                logger.info(f"🐛 DEBUG: Exception in enhanced response: {e}")
-                import traceback
-                logger.error(f"Traceback: {traceback.format_exc()}")
 
         # Fall back to traditional enhancement
         return self._generate_traditional_enhancement(text, context, similar_patterns, file_analysis_results, file_content)
@@ -466,48 +482,85 @@ class SimpleRAGProcessor:
         if not self.vector_db or not workspace_path:
             return
 
-        docs_dir = os.path.join(workspace_path, "docs")
-        if not os.path.exists(docs_dir):
-            # Also check root for READMEs or .md files
-            docs_dir = workspace_path
+        # Simple cache to avoid re-scanning the same project in this session
+        if not hasattr(self, '_scanned_projects'):
+            self._scanned_projects = set()
         
         # Determine project name if not provided
         if not project_name:
             project_name = os.path.basename(workspace_path)
 
-        logger.info(f"📚 Scanning documentation for project '{project_name}' in {docs_dir}")
+        if project_name in self._scanned_projects:
+            # Already scanned this session
+            return
+
+        docs_dir = os.path.join(workspace_path, "docs")
+        
+        # We want to scan BOTH the docs/ folder (recursive) AND the root folder (flat)
+        scan_targets = []
+        
+        # 1. Root folder scan (non-recursive, safe)
+        if os.path.exists(workspace_path):
+             scan_targets.append({
+                 'path': workspace_path, 
+                 'recursive': False
+             })
+             
+        # 2. Docs folder scan (recursive)
+        if os.path.exists(docs_dir):
+             scan_targets.append({
+                 'path': docs_dir, 
+                 'recursive': True
+             })
+
+        logger.info(f"📚 Scanning documentation for project '{project_name}' (Root + Docs)")
+        self._scanned_projects.add(project_name)
         
         count = 0
         try:
-            for root, dirs, files in os.walk(workspace_path):
-                # Skip hidden dirs
-                if '/.' in root:
-                    continue
-                    
-                for file in files:
-                    if file.endswith('.md') or file.endswith('.txt') or file.endswith('.rst'):
-                        # Process doc file
-                        file_path = os.path.join(root, file)
-                        try:
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
-                                if len(content) < 50: continue # Skip tiny files
+            for target in scan_targets:
+                target_path = target['path']
+                is_recursive = target['recursive']
+                
+                if is_recursive:
+                    walker = os.walk(target_path)
+                else:
+                    # Non-recursive: just list files in that dir
+                    try:
+                        files = [f for f in os.listdir(target_path) if os.path.isfile(os.path.join(target_path, f))]
+                        walker = [(target_path, [], files)]
+                    except:
+                        walker = []
 
-                                # Add to Chroma as "Project Knowledge"
-                                rel_path = os.path.relpath(file_path, workspace_path)
-                                self.vector_db.add_knowledge(
-                                    text=content,
-                                    category="project_documentation",
-                                    subcategory=project_name,
-                                    metadata={
-                                        "source_file": rel_path,
-                                        "project": project_name,
-                                        "file_type": "documentation"
-                                    }
-                                )
-                                count += 1
-                        except Exception as e:
-                            logger.warning(f"Failed to read doc {file}: {e}")
+                for root, dirs, files in walker:
+                    # Skip hidden dirs
+                    if '/.' in root:
+                        continue
+                        
+                    for file in files:
+                        if file.endswith('.md') or file.endswith('.txt') or file.endswith('.rst'):
+                            # Process doc file
+                            file_path = os.path.join(root, file)
+                            try:
+                                with open(file_path, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                                    if len(content) < 50: continue # Skip tiny files
+
+                                    # Add to Chroma as "Project Knowledge"
+                                    rel_path = os.path.relpath(file_path, workspace_path)
+                                    self.vector_db.add_knowledge(
+                                        text=content,
+                                        category="project_documentation",
+                                        subcategory=project_name,
+                                        metadata={
+                                            "source_file": rel_path,
+                                            "project": project_name,
+                                            "file_type": "documentation"
+                                        }
+                                    )
+                                    count += 1
+                            except Exception as e:
+                                logger.warning(f"Failed to read doc {file}: {e}")
             
             if count > 0:
                 logger.info(f"✅ Ingested {count} documentation files for {project_name}")
