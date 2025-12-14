@@ -488,15 +488,34 @@ Expected Improvement: Stable memory usage over time"""
 
         return context if any(context.values()) else None
 
-    def calculate_complexity(self, input_text: str, context: Dict) -> int:
-        """Calculate complexity score (1-5) of the request."""
-        complexity = 1
+    def select_optimization_technique(self, intent: str, domain: str, complexity: int) -> str:
+        """
+        Dynamically select the best prompt engineering strategy.
+        Maps intent + complexity -> Advanced Techniques (CoT, etc.)
+        """
+        # high complexity analysis -> Chain of Thought
+        if complexity >= 4 and domain == "analysis":
+            return "chain_of_thought"
+        
+        # coding tasks with medium complexity -> Few Shot (Code)
+        elif domain == "code_generation" and complexity >= 3:
+            return "few_shot_code"
+            
+        # explanation or learning -> Role Prompting (Teacher/Expert)
+        elif intent == "explanation":
+            return "role_prompting"
 
-        # Add complexity for multiple domains
-        if len(context["technologies"]) > 2:
-            complexity += 1
-        if len(context["issues"]) > 1:
-            complexity += 1
+        # debugging -> Systematic Debug Protocol
+        elif intent == "debugging":
+            return "debug_protocol"
+
+        # default mappings
+        if complexity <= 2:
+            return "zero_shot_enhanced"
+        elif complexity <= 4:
+            return "few_shot_pattern"
+        else:
+            return "task_context_constrained"
 
         # Add complexity for technical terms
         technical_terms = len(set(context["technologies"]) | set(context["issues"]))
@@ -509,51 +528,36 @@ Expected Improvement: Stable memory usage over time"""
 
         return min(complexity, 5)
 
-    def construct_system_prompt_request(self, voice_input: str, clipboard: str = None) -> str:
+    def construct_system_prompt_request(self, voice_input: str, clipboard: str = None, past_patterns: str = None) -> str:
         """
-        Construct a meta-prompt for the AI to generate a structured prompt.
-        This uses the AI (Qwen/Gemini) to do the heavy lifting of summarizing messy clipboard data.
+        Constructs the 'Voice-First' Meta-Prompt.
+        This instructs the AI to treat the User Voice as the PRIMARY DIRECTIVE (The Captain),
+        and use Clipboard/History only as supporting context (The Crew).
         """
-        intent, domain = self.detect_intent_and_domain(voice_input)
-        
-        system_instruction = f"""You are an Expert Prompt Improver.
-Your goal: Turn the user's raw voice command and messy clipboard notes into a SINGLE, HIGH-QUALITY LLM PROMPT.
+        system_instruction = f"""You are an Expert Prompt Engineer and Solution Architect.
 
----
-### EXAMPLE INTERACTION (Follow this format):
+### 1. PRIMARY DIRECTIVE (THE CAPTAIN'S ORDER)
+**Voice Command:** "{voice_input}"
 
-**USER VOICE:** "Create a python script to parse this log"
-**CLIPBOARD:** "Error: 500 on /api/v1/users... timestamp 12:00..."
+Your Absolute Priority:
+1. Understand the Intent of the Voice Command above.
+2. If the Voice Command contradicts any Context below, **OBEY THE VOICE COMMAND**.
+3. If the user asks to "Ignore docs" or "Use a different method", do exactly that.
 
-**YOUR OUTPUT:**
-Task: Create a Python script to parse server logs.
-Context:
-- Target error: Error 500 on /api/v1/users
-- Timestamp format: Standard dashed format (e.g., 12:00)
-Requirements:
-- Parse line-by-line
-- Extract error codes and timestamps
-- Output JSON format
----
+### 2. SUPPORTING CONTEXT (THE CREW)
+**Clipboard Content:**
+{clipboard[:3000] + '... (truncated)' if clipboard and len(clipboard) > 3000 else (clipboard or "No clipboard context.")}
 
-### REAL TASK:
+**Relevant Past Solutions:**
+{past_patterns or "No relevant past solutions found."}
 
-**USER VOICE:** "{voice_input}"
-**CLIPBOARD CONTEXT:**
-{clipboard or "No clipboard context."}
+### 3. YOUR TASK
+Based on the PRIMARY DIRECTIVE, generate a high-quality, structured response.
+*   **Filter the Context**: Only use clipboard parts relevant to the Voice Command. Discard noise.
+*   **Apply Best Practices**: Use the Past Solutions if they help the Voice Command, otherwise ignore them.
+*   **Output**: Write the final, optimized prompt or code solution now.
 
-**INSTRUCTIONS:**
-1. **CRITICAL - CONTEXT FILTERING:**
-   - Review the Clipboard Context line-by-line.
-   - Compare each piece of information against the **Usage Intent** from the User Voice.
-   - **KEEP** only information that is directly related or potentially helpful for the task.
-   - **DISCARD** unrelated logs, chat messages, confidentials, or noise that doesn't help solve the specific request.
-2. Combine the *Filtered* Context with User Voice intent.
-3. WRITE THE FINAL PROMPT for an AI to execute the task.
-4. DO NOT say "Here is the prompt". Just write the prompt.
-5. DO NOT summarize what you are doing. Just do it.
-
-**YOUR OUTPUT:**
+**GOAL:** Transform the Voice Command into a perfect execution plan.
 """
         return system_instruction
 
@@ -635,11 +639,28 @@ Requirements:
 
         return cleaned.strip()
 
+    def calculate_complexity(self, input_text: str, context: Dict) -> int:
+        """Calculate complexity score (1-5) of the request."""
+        complexity = 1
+        if len(context.get("technologies", [])) > 2: complexity += 1
+        if len(input_text.split()) > 20: complexity += 1
+        return min(complexity, 5)
+
     def _generate_structured_prompt(self, input_text: str, intent: str, domain: str,
                                    context: Dict, technique: str) -> str:
         """Generate structured prompt using selected technique."""
 
-        if technique == "zero_shot_enhanced":
+        if technique == "chain_of_thought":
+             return self._generate_cot_prompt(input_text, context)
+        elif technique == "few_shot_code":
+             return self._generate_few_shot_code_prompt(input_text, context)
+        elif technique == "role_prompting":
+             return self._generate_role_prompt(input_text, domain, context)
+        elif technique == "debug_protocol":
+             return self._generate_debug_protocol_prompt(input_text, context)
+        
+        # Original strategies
+        elif technique == "zero_shot_enhanced":
             return self._generate_zero_shot_prompt(input_text, intent, domain, context)
         elif technique == "few_shot_pattern":
             return self._generate_few_shot_prompt(input_text, intent, domain, context)
@@ -647,6 +668,68 @@ Requirements:
             return self._generate_code_optimization_prompt(input_text, intent, domain, context)
         else:
             return self._generate_task_context_prompt(input_text, intent, domain, context)
+
+    # --- NEW STRATEGY GENERATORS ---
+
+    def _generate_cot_prompt(self, task: str, context: Dict) -> str:
+        return f"""You are an Expert Analyst using Chain of Thought reasoning.
+
+TASK: {task}
+CONTEXT: {self._format_context(context)}
+
+Think through this step-by-step:
+1. First, analyze the input data and identify key components.
+2. Second, evaluate potential causes or implications.
+3. Third, propose a solution based on the evaluation.
+4. Finally, synthesize the answer.
+
+Let's think step by step:
+"""
+
+    def _generate_few_shot_code_prompt(self, task: str, context: Dict) -> str:
+        return f"""You are a Senior Software Engineer.
+        
+TASK: {task}
+CONTEXT: {self._format_context(context)}
+
+Effectively use the following pattern:
+
+Example Input: "Create a React Button"
+Example Output:
+```jsx
+import React from 'react';
+export const Button = ({{ label, onClick }}) => (
+  <button onClick={{onClick}} className="px-4 py-2 bg-blue-500 text-white rounded">
+    {{label}}
+  </button>
+);
+```
+
+Now, generate the code for the task above:
+"""
+
+    def _generate_role_prompt(self, task: str, domain: str, context: Dict) -> str:
+        return f"""Act as a World-Class Expert in {domain}.
+        
+I want you to explain or solve: {task}
+
+Context: {self._format_context(context)}
+
+Use your deep expertise to provide a clear, authoritative answer.
+"""
+
+    def _generate_debug_protocol_prompt(self, task: str, context: Dict) -> str:
+        return f"""Debug Protocol Initiated.
+
+SYMPTOM: {task}
+ENVIRONMENT: {self._format_context(context)}
+
+Execute the following procedure:
+1. ISOLATE the root cause.
+2. REPRODUCE the issue mentally.
+3. FIX validity check.
+4. PROVIDE the corrected code.
+"""
 
     def _generate_zero_shot_prompt(self, input_text: str, intent: str, domain: str, context: Dict) -> str:
         """Generate zero-shot enhanced prompt."""
@@ -737,13 +820,13 @@ Requirements:
         if "file_type" in context:
             parts.append(f"File Type: {context['file_type']}")
 
-        if context["technologies"]:
+        if context.get("technologies"):
             parts.append(f"Technologies: {', '.join(context['technologies'])}")
 
-        if context["issues"]:
+        if context.get("issues"):
             parts.append(f"Issues: {', '.join(context['issues'])}")
 
-        if context["goals"]:
+        if context.get("goals"):
             parts.append(f"Goals: {', '.join(context['goals'])}")
 
         return "\n".join(parts) if parts else "No specific context provided"

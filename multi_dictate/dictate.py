@@ -720,19 +720,32 @@ class DictationApp:
             except:
                 pass
 
+        original_voice_command = raw_text # Preserve original voice before RAG enhancement
+        
         # 1. RAG Enhancement (Retrieve Context & Past Solutions)
+        rag_context_info = ""
         if hasattr(self, 'rag_processor') and self.rag_processor and self.cfg.get('rag', {}).get('enabled', False):
             try:
                 logger.info("🧠 Enhancing prompt with RAG (Past Solutions & File Context)")
                 # Get current working directory as project root proxy
                 cwd = os.getcwd()
-                raw_text = self.rag_processor.enhance_prompt(
+                # We want RAG to return the "Context Info" separate from the voice,
+                # but currently enhance_prompt returns a merged string.
+                # For now, we will use the enhanced text as the 'past_patterns' context
+                # and keep original_voice_command as the 'voice_input'.
+                rag_enhanced_text = self.rag_processor.enhance_prompt(
                     raw_text,
                     context={
                         'clipboard': clipboard_context,
                         'project_root': cwd
                     }
                 )
+                
+                # If RAG added something, extract it as context (simplified logic)
+                if rag_enhanced_text != raw_text:
+                    rag_context_info = rag_enhanced_text
+                    # Note: We do NOT overwrite raw_text here with RAG output anymore for the Optimizer flow.
+                    # We pass RAG output as 'past_patterns' argument.
             except Exception as e:
                 logger.warning(f"⚠️ RAG enhancement failed: {e}")
 
@@ -741,7 +754,13 @@ class DictationApp:
             try:
                 logger.info("✨ Optimizing result as prompt via AI")
                 # 1. Construct the meta-prompt that tells AI how to structure the result
-                meta_prompt = self.prompt_optimizer.construct_system_prompt_request(raw_text, clipboard_context)
+                # We pass the ORIGINAL VOICE as the primary command
+                # We pass RAG info as 'past_patterns'
+                meta_prompt = self.prompt_optimizer.construct_system_prompt_request(
+                    voice_input=original_voice_command, 
+                    clipboard=clipboard_context,
+                    past_patterns=rag_context_info
+                )
                 
                 # 2. Add a special flag/prefix so ai_processor knows this is a meta-request (optional, or just pass it)
                 # But here we just pass the meta-prompt as the 'text' to process
