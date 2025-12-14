@@ -543,8 +543,12 @@ Requirements:
 {clipboard or "No clipboard context."}
 
 **INSTRUCTIONS:**
-1. Read the clipboard context. Extract the real facts/notes.
-2. Combine with User Voice intent.
+1. **CRITICAL - CONTEXT FILTERING:**
+   - Review the Clipboard Context line-by-line.
+   - Compare each piece of information against the **Usage Intent** from the User Voice.
+   - **KEEP** only information that is directly related or potentially helpful for the task.
+   - **DISCARD** unrelated logs, chat messages, confidentials, or noise that doesn't help solve the specific request.
+2. Combine the *Filtered* Context with User Voice intent.
 3. WRITE THE FINAL PROMPT for an AI to execute the task.
 4. DO NOT say "Here is the prompt". Just write the prompt.
 5. DO NOT summarize what you are doing. Just do it.
