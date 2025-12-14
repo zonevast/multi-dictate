@@ -28,63 +28,89 @@ class GeminiProcessor:
         # Support both single key (string) and multiple keys (list)
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
-        self.model = self.MODELS.get(model, self.MODELS["flash"])
-        self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
-        logger.info(f"Using Gemini model: {self.model} with {len(self.api_keys)} API key(s)")
+        self.model_name = self.MODELS.get(model, self.MODELS["flash"])
+        logger.info(f"Using Gemini model: {self.model_name} with {len(self.api_keys)} API key(s)")
         
+        # Try to import SDK
+        try:
+            import google.generativeai as genai
+            self.genai = genai
+        except ImportError:
+            logger.error("❌ google-generativeai SDK not found! Please install with 'pip install google-generativeai'")
+            self.genai = None
+
+    def _configure_client(self, api_key):
+        """Configure the GenAI client with a specific key"""
+        if self.genai:
+            self.genai.configure(api_key=api_key)
+
     def _make_request(self, prompt: str) -> Optional[str]:
-        """Make request to Gemini API with automatic fallback to next key on quota error."""
-        headers = {"Content-Type": "application/json"}
+        """
+        Make request to Gemini. 
+        Priority:
+        1. SDK (if api_keys present)
+        2. CLI (if no keys, attempt `gemini "prompt"`)
+        """
+        
+        # 1. SDK Mode
+        if self.api_keys and self.api_keys[0]:
+             if not self.genai:
+                 logger.error("SDK not initialized/installed.")
+                 return None
 
-        data = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.1,
-                "maxOutputTokens": 2048
-            }
-        }
+             for attempt in range(len(self.api_keys)):
+                 api_key = self.api_keys[self.current_key_index]
+                 key_num = self.current_key_index + 1
+                 
+                 try:
+                     self._configure_client(api_key)
+                     model = self.genai.GenerativeModel(self.model_name)
+                     
+                     response = model.generate_content(
+                         prompt,
+                         generation_config=self.genai.types.GenerationConfig(
+                             temperature=0.1, max_output_tokens=2048
+                         )
+                     )
+                     
+                     if response.text:
+                         logger.info(f"✅ API key #{key_num} success")
+                         return response.text.strip()
+                     
+                 except Exception as e:
+                     logger.warning(f"❌ API key #{key_num} failed: {e}")
+                     self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                     continue
+             
+             logger.error("❌ All API keys failed")
+             return None
 
-        # Try each API key in rotation
-        for attempt in range(len(self.api_keys)):
-            api_key = self.api_keys[self.current_key_index]
-            key_num = self.current_key_index + 1
+        # 2. CLI Mode (Fallback if no keys)
+        else:
+             logger.info("🔧 No API keys found. Attempting CLI mode: `gemini \"prompt\"`")
+             try:
+                 import subprocess
+                 # User confirmed `gemini` is installed and works directly
+                 cli_cmd = ["gemini", prompt]
 
-            try:
-                response = requests.post(
-                    f"{self.base_url}?key={api_key}",
-                    headers=headers,
-                    json=data,
-                    timeout=30
-                )
-
-                if response.status_code == 200:
-                    result = response.json()
-                    if "candidates" in result and result["candidates"]:
-                        candidate = result["candidates"][0]
-                        if "content" in candidate and "parts" in candidate["content"]:
-                            content = candidate["content"]["parts"][0]["text"]
-                            logger.info(f"✅ API key #{key_num} success")
-                            return content.strip()
-                        else:
-                            logger.warning(f"No content in response: {candidate.get('finishReason', 'unknown')}")
-
-                elif response.status_code == 429:
-                    # Quota exceeded - try next key
-                    logger.warning(f"❌ API key #{key_num} quota exceeded, trying next key...")
-                    self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-                    continue
-                else:
-                    logger.error(f"API key #{key_num} error: {response.status_code} - {response.text[:200]}")
-
-            except Exception as e:
-                logger.error(f"API key #{key_num} request failed: {e}")
-                logger.debug(traceback.format_exc())
-
-            # Try next key on any error
-            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-
-        logger.error("❌ All API keys failed or quota exceeded")
-        return None
+                 result = subprocess.run(
+                     cli_cmd,
+                     capture_output=True,
+                     text=True,
+                     timeout=45 # Increased timeout for npx startup
+                 )
+                 
+                 if result.returncode == 0 and result.stdout:
+                     return result.stdout.strip()
+                 else:
+                     logger.error(f"❌ CLI failed: {result.stderr}")
+                     return None
+             except FileNotFoundError:
+                 logger.error("❌ 'gemini' CLI command not found.")
+                 return None
+             except Exception as e:
+                 logger.error(f"❌ CLI execution error: {e}")
+                 return None
     
     def process_dictation(self, text: str, clipboard_context: str = None) -> str:
         """
