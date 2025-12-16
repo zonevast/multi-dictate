@@ -948,6 +948,9 @@ class DictationApp:
 
     def optimize_clipboard_prompt(self):
         """Optimize currently copied text and push result back to clipboard."""
+        print("📋 CLIPBOARD OPTIMIZE FUNCTION CALLED!")
+        logger.info("📋 CLIPBOARD OPTIMIZE FUNCTION CALLED!")
+
         if not self.gemini_processor:
             print("❌ Gemini API key not configured")
             self._show_error("❌ No API key")
@@ -1002,8 +1005,8 @@ class DictationApp:
 
     def start_ai_clean_recording(self, use_shift_enter=False):
         """AI-enhanced recording WITHOUT clipboard context"""
-        print("🧹 DEBUG: start_ai_clean_recording called - ignoring clipboard")
-        logger.info("🧹 DEBUG: start_ai_clean_recording called - ignoring clipboard")
+        print("🎤 AI CLEAN RECORDING - NO CLIPBOARD!")
+        logger.info("🎤 AI CLEAN RECORDING - NO CLIPBOARD!")
 
         if not self.gemini_processor:
             print("❌ Gemini API key not configured")
@@ -1024,7 +1027,7 @@ class DictationApp:
                     print("No audio recorded")
                     return
 
-                self.show_status_window("AI Processing 🧠", "processing")
+                self.show_status_window("Voice Only AI 🎤", "processing")
                 audio = self._convert_raw_audio_to_sr_format(data)
 
                 raw_text = self._recognize(audio)
